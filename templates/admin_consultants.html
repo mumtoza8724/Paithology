@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+    <meta charset="UTF-8">
+    <title>Модерация консультантов</title>
+
+    <style>
+
+body{
+    margin:0;
+    padding:40px;
+    background:#0b1020;
+}
+
+h1{
+    text-align:center;
+    color:white;
+    margin-bottom:40px;
+}
+
+.card{
+    max-width:900px;
+    margin:25px auto;
+    background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+    border-radius:25px;
+    padding:30px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+.card h2{
+    color:white;
+    margin-top:0;
+}
+
+.card p{
+    color:white;
+    line-height:1.7;
+}
+
+.documents{
+    background:rgba(255,255,255,0.04);
+    border-radius:15px;
+    padding:15px;
+    margin-top:15px;
+}
+
+.documents a{
+    display:block;
+    margin:8px 0;
+    color:#4fc3f7;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.documents a:hover{
+    color:#7dd3fc;
+}
+
+.documents h3{
+    color: white;
+}
+
+.status{
+    margin-top:15px;
+    font-weight:bold;
+    font-size:16px;
+}
+
+.approved{
+    color:#22c55e;
+}
+
+.pending{
+    color:#f59e0b;
+}
+
+.buttons{
+    margin-top:20px;
+    display:flex;
+    gap:15px;
+}
+
+.btn{
+    text-decoration:none;
+    padding:12px 25px;
+    border-radius:12px;
+    color:white;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.approve{
+    background:#22c55e;
+}
+
+.approve:hover{
+    background:#16a34a;
+}
+
+.reject{
+    background:#ef4444;
+}
+
+.reject:hover{
+    background:#dc2626;
+}
+
+.photo{
+    width:140px;
+    height:140px;
+    border-radius:50%;
+    object-fit:cover;
+    border:4px solid #b884ff;
+    margin-bottom:15px;
+}
+
+</style>
+
+</head>
+<body>
+<h1>Проверка консультантов</h1>
+
+{% for consultant in consultants %}
+
+<div class="card">
+
+    {% if consultant.photo %}
+<img
+src="{{ url_for('static', filename=consultant.photo) }}"
+class="photo">
+{% endif %}
+
+<h2>
+{{ consultant.first_name }}
+{{ consultant.last_name }}
+</h2><p>
+<b>Email:</b>
+{{ consultant.email }}
+</p><p>
+<b>Страна:</b>
+{{ consultant.country }}
+</p><p>
+<b>Город:</b>
+{{ consultant.city }}
+</p><p>
+<b>Учёная степень:</b>
+{{ consultant.degree }}
+</p><p>
+<b>Организация:</b>
+{{ consultant.organization }}
+</p><p>
+<b>Должность:</b>
+{{ consultant.position }}
+</p><p>
+<b>Опыт:</b>
+{{ consultant.experience }}
+</p><p>
+<b>Специализации:</b>
+{{ consultant.specializations }}
+</p><p>
+<b>Языки:</b>
+{{ consultant.languages }}
+</p>
+<p>
+<b>Стоимость консультации:</b>
+{{ consultant.consult_price }} $
+</p>
+    <p>
+<b>Время ответа:</b>
+{{ consultant.response_time }}
+</p><p>
+<b>Карта:</b>
+{{ consultant.card }}
+</p><p>
+<b>Владелец карты:</b>
+{{ consultant.owner }}
+</p>
+    <p>
+
+    <div class="documents">
+        <h3>Документы</h3>
+        {% if consultant.documents %}
+
+{% for file in consultant.documents.split(';') %}
+
+<a href="{{ url_for('static', filename='uploads/documents/' + file) }}"
+target="_blank">
+
+📄 {{ file }}
+
+</a>{% endfor %}
+
+{% else %}
+
+<p>Документы не загружены</p>{% endif %}
+
+</div><p class="status">{% if consultant.verified %}
+
+<span class="approved">
+✅ Одобрен
+</span>{% else %}
+
+<span class="pending">
+⏳ Ожидает проверки
+</span>{% endif %}
+
+</p><div class="buttons"><a
+class="btn approve"
+href="{{ url_for('approve_consultant', id=consultant.id) }}">
+
+Одобрить
+
+</a><a
+class="btn reject"
+href="{{ url_for('reject_consultant', id=consultant.id) }}">
+
+Отклонить
+
+</a></div></div>{% endfor %}
+
+</body></html>

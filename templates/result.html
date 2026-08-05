@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+
+content="width=device-width,initial-scale=1.0">
+
+<title>
+
+PAITHOLOGY | Результат анализа
+
+</title>
+
+<link
+
+rel="stylesheet"
+
+href="{{ url_for('static', filename='result.css') }}"
+
+>
+
+</head>
+
+<body>
+
+<div class="result-page">
+
+
+<div class="top-panel">
+
+<a
+
+href="/"
+
+class="back-btn"
+
+>
+
+← Назад к загрузке
+
+</a>
+
+
+<div class="top-actions">
+
+<a
+
+href="/report"
+
+class="download-btn"
+
+>
+
+📄Скачать отчёт
+
+</a>
+
+
+<button class="share-btn">
+
+🔗 Поделиться
+
+</button>
+
+</div>
+
+</div>
+
+
+<h1>
+
+Результаты анализа
+
+</h1>
+
+
+<div class="result-grid">
+
+
+<!-- ЛЕВАЯ КОЛОНКА -->
+
+
+<div class="left-column">
+
+
+<div class="image-card">
+
+<div class="preview-title">
+
+Предпросмотр изображений
+
+</div>
+
+<div class="viewer">
+
+{% if images|length > 1 %}
+
+<button
+class="arrow left"
+onclick="prevImage()">
+
+❮
+
+</button>
+
+{% endif %}
+
+<img
+
+id="viewer-image"
+
+src="/{{ images[0] }}"
+
+class="viewer-image"
+
+alt="Изображение"
+
+>
+
+{% if images|length > 1 %}
+
+<button
+
+class="arrow right"
+
+onclick="nextImage()">
+
+❯
+
+</button>
+
+{% endif %}
+
+</div>
+
+<div class="counter">
+
+<span id="current-image">
+
+1
+
+</span>
+
+/
+
+{{ images|length }}
+
+</div>
+
+
+<div class="preview-gallery">
+
+{% for image in images %}
+
+<img
+
+src="/{{ image }}"
+
+class="preview-thumb"
+
+onclick="goToImage({{ loop.index }})"
+
+alt="Миниатюра"
+
+>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+
+<div class="description-card">
+
+<h3>
+
+Микроскопическое описание
+
+</h3>
+
+
+<pre>
+
+{{ description }}
+
+</pre>
+
+</div>
+
+
+</div>
+
+
+<!-- ПРАВАЯ КОЛОНКА -->
+
+
+<div class="right-column">
+
+
+<div class="diagnosis-card">
+
+<h2>
+
+Заключение
+
+</h2>
+
+
+<div class="diagnosis">
+
+{{ result }}
+
+</div>
+
+
+<div class="confidence">
+
+{{ confidence }} %
+
+</div>
+
+</div>
+
+
+<div class="findings-card">
+
+
+<h3>
+
+Ключевые находки
+
+</h3>
+
+<ul>
+
+{% for item in key_findings %}
+
+<li>
+
+{{ item }}
+
+</li>
+
+{% endfor %}
+
+</ul>
+
+
+<div class="row">
+
+<span>
+
+Пациент
+
+</span>
+
+<span>
+
+{{ patient_name }}
+
+</span>
+
+</div>
+
+
+<div class="row">
+
+<span>
+
+Орган
+
+</span>
+
+<span>
+
+{{ organ }}
+
+</span>
+
+</div>
+
+
+<div class="row">
+
+<span>
+
+Пол
+
+</span>
+
+<span>
+
+{{ gender }}
+
+</span>
+
+</div>
+
+
+<div class="row">
+
+<span>
+
+Клинические данные
+
+</span>
+
+<span>
+
+{{ clinical }}
+
+</span>
+
+</div>
+
+</div>
+
+
+<div class="ai-card">
+
+
+<div class="circle">
+
+{{ confidence }}%
+
+</div>
+
+
+<div class="bars">
+
+
+<div>
+
+<span>
+
+Уверенность модели
+
+</span>
+
+
+<progress
+
+value="{{ confidence }}"
+
+max="100"
+
+>
+
+</progress>
+
+</div>
+
+
+<div>
+
+<span>
+
+Согласованность
+
+</span>
+
+
+<progress
+
+value="{{ agreement }}"
+
+max="100"
+
+>
+
+</progress>
+
+</div>
+
+</div>
+
+</div>
+
+
+<button class="consult-btn"
+        onclick="window.location.href='{{ url_for('consultants') }}'">
+    🩺 Отправить на консультацию
+</button>
+
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let images = {{ images|tojson }};
+
+images = images.map(img => "/" + img);
+
+let index = 0;
+
+function showImage(){
+
+document.getElementById(
+"viewer-image"
+).src = images[index];
+
+document.getElementById(
+"current-image"
+).innerText = index + 1;
+
+}
+
+function nextImage(){
+
+if(index >= images.length-1){
+
+index = 0;
+
+}else{
+
+index++;
+
+}
+
+showImage();
+
+}
+
+function prevImage(){
+
+if(index <= 0){
+
+index = images.length-1;
+
+}else{
+
+index--;
+
+}
+
+showImage();
+
+}
+
+function goToImage(i){
+
+index = i;
+
+showImage();
+
+}
+
+</script>
+
+</body>
+
+</html>

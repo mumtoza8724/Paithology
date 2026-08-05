@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+
+PAITHOLOGY | Исследование №{{case.id}}
+
+</title>
+
+<link rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+rel="stylesheet">
+
+<style>
+
+*{
+
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+
+}
+
+body{
+
+background:#0b1020;
+color:white;
+padding:40px;
+
+}
+
+.container{
+
+max-width:1400px;
+margin:auto;
+
+}
+
+.header{
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:35px;
+flex-wrap:wrap;
+gap:20px;
+
+}
+
+.title{
+
+font-size:34px;
+font-weight:700;
+
+}
+
+.subtitle{
+
+margin-top:8px;
+color:#94a3b8;
+
+}
+
+.grid{
+
+display:grid;
+grid-template-columns:420px 1fr;
+gap:30px;
+
+}
+
+@media(max-width:1000px){
+
+.grid{
+
+grid-template-columns:1fr;
+
+}
+
+}
+
+.card{
+
+background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+border-radius:22px;
+padding:25px;
+
+}
+
+.photo{
+
+width:100%;
+border-radius:18px;
+object-fit:cover;
+background:#171d31;
+
+border:2px solid #9c6cff;
+
+}
+
+.empty-photo{
+
+height:420px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#334155;
+border-radius:18px;
+color:#94a3b8;
+font-size:18px;
+
+}
+
+.section{
+
+margin-bottom:25px;
+
+}
+
+.section-title{
+
+font-size:18px;
+font-weight:700;
+margin-bottom:15px;
+
+}
+
+.info-grid{
+
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:15px;
+
+}
+
+.info{
+
+background:#171d31;
+
+border:2px solid #9c6cff;
+padding:15px;
+border-radius:14px;
+
+}
+
+.label{
+
+font-size:12px;
+color:#94a3b8;
+margin-bottom:6px;
+
+}
+
+.value{
+
+font-size:15px;
+font-weight:600;
+
+}
+
+.block{
+
+background:#171d31;
+
+border:2px solid #9c6cff;
+padding:20px;
+border-radius:16px;
+line-height:1.8;
+
+}
+
+.conclusion{
+
+background:#7c3aed;
+padding:20px;
+border-radius:18px;
+font-size:19px;
+font-weight:700;
+
+}
+
+.buttons{
+
+display:flex;
+gap:15px;
+margin-top:30px;
+flex-wrap:wrap;
+
+}
+
+.btn{
+
+padding:14px 24px;
+border:none;
+border-radius:12px;
+cursor:pointer;
+font-size:15px;
+font-weight:600;
+text-decoration:none;
+display:inline-block;
+
+}
+
+.doc{
+
+background:#2563eb;
+color:white;
+
+}
+
+.back{
+
+background:#334155;
+color:white;
+
+}
+
+.delete{
+
+background:#dc2626;
+color:white;
+
+}
+
+.edit{
+
+background:#059669;
+color:white;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+
+<div>
+
+<div class="title">
+
+Исследование №{{ display_number }}
+
+</div>
+
+<div class="subtitle">
+
+{{ current_user.username.upper() }} • PAITHOLOGY
+
+</div>
+
+</div>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+
+{% if case.images %}
+
+<img src="/{{ case.images.split(',')[0] }}" class="photo">
+
+{% else %}
+
+<div class="empty-photo">
+
+Изображение отсутствует
+
+</div>
+
+{% endif %}
+
+</div>
+
+<div class="card">
+
+<div class="section">
+
+<div class="section-title">
+
+Основная информация
+
+</div>
+
+<div class="info-grid">
+
+<div class="info">
+
+<div class="label">
+
+Пациент
+
+</div>
+
+<div class="value">
+
+{{case.patient_name}}
+
+</div>
+
+</div>
+
+<div class="info">
+
+<div class="label">
+
+Дата рождения
+
+</div>
+
+<div class="value">
+
+{{case.birth_date}}
+
+</div>
+
+</div>
+
+<div class="info">
+
+<div class="label">
+
+Дата поступления
+
+</div>
+
+<div class="value">
+
+{{ case.admission_date }}
+
+</div>
+
+</div>
+
+<div class="info">
+
+<div class="label">
+
+Орган
+
+</div>
+
+<div class="value">
+
+{{case.organ}}
+
+</div>
+
+</div>
+
+<div class="info">
+
+<div class="label">
+
+Клинический диагноз
+
+</div>
+
+<div class="value">
+
+{{case.clinical}}
+
+</div>
+
+</div>
+
+<div class="info">
+
+<div class="label">
+
+Номер исследования
+
+</div>
+
+<div class="value">
+
+{{ case.research_number }}
+    
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="section">
+
+<div class="section-title">
+
+Микроскопическое описание
+
+</div>
+
+<div class="block">
+
+{{case.description}}
+
+</div>
+
+</div>
+
+<div class="section">
+
+<div class="section-title">
+
+Патоморфологическое заключение
+
+</div>
+
+<div class="conclusion">
+
+{{case.conclusion}}
+
+</div>
+
+</div>
+
+{% if case.confidence %}
+
+<div class="section">
+
+<div class="section-title">
+
+Уверенность искусственного интеллекта
+
+</div>
+
+<div class="block">
+
+{{case.confidence}} %
+
+</div>
+
+</div>
+
+{% endif %}
+
+<div class="buttons">
+
+<a href="{{ url_for('report', id=case.id) }}" class="btn doc">
+    Скачать DOCX
+</a>
+
+<a
+href="/cases"
+class="btn back">
+
+Назад к архиву
+
+</a>
+
+<a
+href="/delete_case/{{case.id}}"
+class="btn delete"
+onclick="return confirm('Удалить исследование?');">
+
+Удалить
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

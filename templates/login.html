@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PAITHOLOGY</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:#0b1020;
+}
+
+.card{
+
+    width:420px;
+
+    background: #0D0B26;
+    border:2px solid #9c6cff;
+
+    padding:40px;
+
+    border-radius:25px;
+
+    box-shadow:
+    0 15px 40px rgba(0,0,0,.1);
+
+}
+
+.logo{
+
+    width:200px;
+
+    display:block;
+
+    margin:auto;
+
+    margin-bottom:20px;
+
+}
+
+.title{
+
+    text-align:center;
+
+    color:white;
+
+    font-size:34px;
+
+    font-weight:700;
+
+}
+
+.subtitle{
+
+    text-align:center;
+
+    color:#666;
+
+    margin-bottom:35px;
+
+}
+
+input{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    background: #d5aeef;
+
+    border-radius:12px;
+
+    margin-bottom:15px;
+
+    font-size:15px;
+
+}
+
+button{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:linear-gradient(
+        90deg,
+        #7C4DFF,
+        #5E35B1
+    );
+
+    color:white;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+}
+
+button:hover{
+
+    opacity:.9;
+
+}
+
+.link{
+
+    text-align:center;
+
+    margin-top:20px;
+
+}
+
+.link a{
+
+    color:#7C4DFF;
+
+    text-decoration:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<img
+src="/static/logo.png"
+class="logo"
+>
+
+<h1 class="title">
+PAITHOLOGY
+</h1>
+
+<p class="subtitle">
+Ассистент патоморфолога
+</p>
+
+<form method="POST">
+
+<input
+type="text"
+name="username"
+placeholder="Логин"
+required
+>
+
+<input
+type="password"
+name="password"
+placeholder="Пароль"
+required
+>
+
+<button type="submit">
+Войти
+</button>
+
+</form>
+
+<div class="link">
+
+<a href="/register">
+Создать аккаунт
+</a>
+
+</div>
+
+</div>
+
+</body>
+</html>

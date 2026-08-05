@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Консультанты PAITHOLOGY</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:40px;
+    background:#0b1020;
+}
+
+h1{
+    text-align:center;
+    color:white;
+    margin-bottom:40px;
+}
+
+.consultants-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, 520px);
+    justify-content:center;
+    gap:30px;
+    margin-top:30px;
+}
+
+.card{
+    background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+    border-radius:25px;
+    padding:25px;
+    backdrop-filter:blur(10px);
+}
+
+.photo{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    object-fit:cover;
+    background:#1c2033;
+    border:4px solid #b884ff;
+    display:block;
+    margin:auto;
+}
+
+.name{
+    text-align:center;
+    color:#dceeff;
+    margin-top:15px;
+    margin-bottom:20px;
+}
+
+.info{
+    color:#cfd8e3;
+    line-height:1.8;
+    font-size: 17px;
+}
+
+.info b{
+    color:white;
+    font-size: 17px;
+}
+
+.price{
+    margin-top:15px;
+    font-size:22px;
+    font-weight:bold;
+    color: #f1e511;
+}
+
+.btn{
+    width:100%;
+    margin-top:20px;
+    padding:14px;
+    border:none;
+    border-radius:14px;
+    background:
+
+linear-gradient(
+90deg,
+#9d63ff,
+#e4a4ff
+);
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.btn:hover{
+    transform:translateY(-3px);
+
+box-shadow:
+
+0 0 30px #b784ff;
+}
+
+.verified-badge{
+    background:rgba(34,197,94,0.15);
+    color:#22c55e;
+    border:1px solid rgba(34,197,94,0.4);
+    padding:8px 12px;
+    border-radius:12px;
+    text-align:center;
+    margin-bottom:15px;
+    font-weight:bold;
+}
+
+.pending-badge{
+    background:rgba(245,158,11,0.15);
+    color:#f59e0b;
+    border:1px solid rgba(245,158,11,0.4);
+    padding:8px 12px;
+    border-radius:12px;
+    text-align:center;
+    margin-bottom:15px;
+    font-weight:bold;
+}
+
+.search-panel{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+}
+
+.search-panel input,
+.search-panel select{
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+    font-size: 16px;
+    width: 180px;
+}
+
+.search-panel input::placeholder{
+    color:white;
+    opacity:1;
+}
+
+.search-panel button{
+    background: #8d38c6;
+    border:none;
+    border-radius:12px;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    font-size: 17px;
+    width: 200px;
+    height: 50px;
+}
+
+.search-panel button:hover{
+transform:translateY(-2px);
+
+box-shadow:0 0 20px rgba(184,132,255,.45);
+
+}
+
+select{
+    color:white;
+    width: 190px !important;
+}
+
+.form-select option{
+
+background:#242336;
+
+color:white;
+
+}
+
+
+</style>
+
+<link rel="stylesheet"
+href="{{ url_for('static', filename='sidebar.css') }}">
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<h1>Консультанты PAITHOLOGY</h1>
+
+<form method="GET" class="search-panel">
+
+    <input
+        type="text"
+        name="name"
+        placeholder="Имя или фамилия">
+
+    <select name="degree" class="form-select">
+
+    <option value="" selected disabled hidden>
+        Научная степень
+    </option>
+
+    <option>Без степени</option>
+    <option>PhD</option>
+    <option>Кандидат медицинских наук</option>
+    <option>Доктор медицинских наук</option>
+    <option>Профессор</option>
+
+</select>
+
+    <input
+        type="text"
+        name="country"
+        placeholder="Страна">
+
+    <select name="experience" class="form-select">
+
+   <option value="" selected disabled hidden>
+        Стаж работы
+    </option>
+
+    <option>До 1 года</option>
+    <option>1–3 года</option>
+    <option>3–5 лет</option>
+    <option>5–10 лет</option>
+    <option>10–20 лет</option>
+    <option>20–30 лет</option>
+    <option>Более 30 лет</option>
+
+</select>
+
+    <input
+        type="text"
+        name="specialization"
+        placeholder="Специализация">
+
+    <input
+        type="text"
+        name="language"
+        placeholder="Язык">
+
+    <select name="response_time" class="form-select">
+        <option value="" selected disabled hidden>
+        Время ответа
+    </option>
+        <option value="1">до 1 часа</option>
+        <option value="6">до 6 часов</option>
+        <option value="24">до 24 часов</option>
+        <option value="48">до 48 часов</option>
+    </select>
+
+    <button type="submit">
+        🔍 Найти
+    </button>
+
+</form>
+<br>
+<div class="consultants-grid">
+
+{% for consultant in consultants %}
+
+<div class="card">
+
+{% if consultant.photo %}
+
+<img
+class="photo"
+src="{{ url_for('static', filename=consultant.photo) }}">
+
+{% else %}
+
+<img
+class="photo"
+src="{{ url_for('static', filename='icons/user.svg') }}">
+
+{% endif %}
+
+<h2 class="name">
+{{ consultant.first_name }}
+{{ consultant.last_name }}
+</h2>
+
+    {% if consultant.verified %}
+
+<div class="verified-badge">
+    ✓ Проверенный эксперт
+</div>
+
+{% else %}
+
+<div class="pending-badge">
+    ⏳ Проверяется администрацией
+</div>
+
+{% endif %}
+
+<div class="info">
+
+<p>
+<b>Email:</b>
+{{ consultant.email }}
+</p>
+
+<p>
+<b>Страна:</b>
+{{ consultant.country }}
+</p>
+
+<p>
+<b>Город:</b>
+{{ consultant.city }}
+</p>
+
+<p>
+<b>Учёная степень:</b>
+{{ consultant.degree }}
+</p>
+
+<p>
+<b>Организация:</b>
+{{ consultant.organization }}
+</p>
+
+<p>
+<b>Должность:</b>
+{{ consultant.position }}
+</p>
+
+<p>
+<b>Опыт:</b>
+{{ consultant.experience }}
+</p>
+
+<p>
+<b>Специализации:</b>
+{{ consultant.specializations }}
+</p>
+
+<p>
+<b>Языки:</b>
+{{ consultant.languages }}
+</p>
+
+<p>
+<b>Время ответа:</b>
+{{ consultant.response_time }} ч
+</p>
+
+<div class="price">
+{{ consultant.consult_price }} $
+</div>
+
+</div>
+
+<button class="btn">
+Заказать консультацию
+</button>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</body>
+
+</html>

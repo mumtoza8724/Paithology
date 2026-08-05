@@ -1,0 +1,27 @@
+# Dataset
+dataset/
+
+# Models
+*.keras
+*.h5
+*.pt
+*.pth
+
+# Database
+instance/
+*.db
+paithology.db
+
+# Virtual environment
+.venv/
+venv/
+
+# PyCharm
+.idea/
+
+# Cache
+pycache/
+*.pyc
+
+# User uploads
+static/uploads/

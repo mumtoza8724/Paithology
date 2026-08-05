@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PAITHOLOGY | Архив исследований</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="{{ url_for('static', filename='sidebar.css') }}">
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+
+background:#0b1020;
+color:white;
+padding:40px;
+
+}
+
+.container{
+
+max-width:1400px;
+margin:auto;
+
+}
+
+.header{
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:35px;
+flex-wrap:wrap;
+gap:20px;
+
+}
+
+.title{
+
+font-size:34px;
+font-weight:700;
+
+}
+
+.subtitle{
+
+color:#94a3b8;
+margin-top:8px;
+
+}
+
+.search-box{
+
+background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+padding:25px;
+border-radius:20px;
+margin-bottom:35px;
+
+}
+
+.search-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
+}
+
+input,
+select{
+
+width:100%;
+padding:14px;
+border:none;
+outline:none;
+border-radius:12px;
+background:#171d31;
+
+border:2px solid #9c6cff;
+color:white;
+font-size:16px;
+
+}
+
+input::placeholder{
+
+color:white;
+
+}
+
+button{
+
+background:#8b5cf6;
+color:white;
+border:none;
+padding:14px;
+border-radius:12px;
+cursor:pointer;
+font-size:16px;
+font-weight:600;
+transition:.3s;
+
+}
+
+button:hover{
+
+background:#7c3aed;
+
+}
+
+.results{
+
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(420px,1fr));
+gap:25px;
+
+}
+
+.card{
+
+background:rgba(104,74,176,.18);
+    border:2px solid #9c6cff;
+border-radius:22px;
+padding:24px;
+transition:.25s;
+
+}
+
+.card:hover{
+
+transform:translateY(-4px);
+
+}
+
+.card-top{
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+
+}
+
+.case-id{
+
+font-size:16px;
+color:#cbd5e1;
+
+}
+
+.badge{
+
+background:#8b5cf6;
+padding:8px 14px;
+border-radius:30px;
+font-size:15px;
+font-weight:600;
+
+}
+
+.patient{
+
+font-size:25px;
+font-weight:700;
+margin-bottom:18px;
+
+}
+
+.info{
+
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:15px;
+margin-bottom:20px;
+
+}
+
+.info-box{
+
+background:#171d31;
+
+border:2px solid #9c6cff;
+padding:14px;
+border-radius:14px;
+
+}
+
+.label{
+
+font-size:16px;
+color:#94a3b8;
+margin-bottom:5px;
+
+}
+
+.value{
+
+font-size:17px;
+font-weight:600;
+
+}
+
+.description{
+
+background:#171d31;
+
+border:2px solid #9c6cff;
+padding:18px;
+border-radius:16px;
+margin-top:15px;
+margin-bottom:20px;
+
+}
+
+.description-title{
+
+font-size:18px;
+font-weight:700;
+margin-bottom:10px;
+
+}
+
+.description-text{
+
+font-size:17px;
+color:#e2e8f0;
+line-height:1.6;
+
+display:-webkit-box;
+-webkit-line-clamp:4;
+-webkit-box-orient:vertical;
+overflow:hidden;
+
+}
+
+.actions{
+
+display:flex;
+justify-content:flex-end;
+
+}
+
+.open-btn{
+
+text-decoration:none;
+
+}
+
+.open-btn button{
+
+padding:12px 22px;
+
+}
+
+.empty{
+
+text-align:center;
+padding:60px;
+color:white;
+font-size:18px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+{% include "sidebar.html" %}
+<div class="container">
+
+<div class="header">
+
+<div>
+
+<div class="title">
+
+Архив исследований
+
+</div>
+
+<div class="subtitle">
+
+{{ current_user.username.upper() }} • PAITHOLOGY
+
+</div>
+
+</div>
+
+</div>
+
+<form method="GET" class="search-box">
+
+<div class="search-grid">
+
+<input
+    type="text"
+    name="research_number"
+    placeholder="Номер исследования"
+    value="{{ request.args.get('research_number','') }}"
+>
+
+<input
+type="text"
+name="patient_name"
+placeholder="ФИО пациента"
+value="{{ request.args.get('patient_name','') }}">
+
+<input
+type="text"
+name="organ"
+placeholder="Орган"
+value="{{ request.args.get('organ','') }}">
+
+    <input
+    type="text"
+    name="conclusion"
+    placeholder="Заключение">
+
+<input
+    type="text"
+    name="admission_date"
+    placeholder="Дата поступления"
+    onfocus="this.type='date'">
+
+<button type="submit">
+
+Поиск
+
+</button>
+
+</div>
+
+</form>
+
+<div class="results">
+
+{% if cases %}
+
+{% for case in cases %}
+
+<div class="card">
+
+    <div class="card-top">
+
+        <div class="case-id">
+            Исследование №{{ case.display_number }}
+        </div>
+
+        <div class="badge">
+            {{ case.conclusion }}
+        </div>
+
+    </div>
+
+    <div class="patient">
+        {{ case.patient_name }}
+    </div>
+
+    <div class="info">
+
+        <div class="info-box">
+
+            <div class="label">
+                Орган
+            </div>
+
+            <div class="value">
+                {{ case.organ }}
+            </div>
+
+        </div>
+
+        <div class="info-box">
+
+            <div class="label">
+                Дата поступления
+            </div>
+
+            <div class="value">
+                {{ case.admission_date }}
+            </div>
+
+        </div>
+
+        <div class="info-box">
+
+            <div class="label">
+                Дата рождения
+            </div>
+
+            <div class="value">
+                {{ case.birth_date or "-" }}
+            </div>
+
+        </div>
+
+        <div class="info-box">
+
+            <div class="label">
+                Клинический диагноз
+            </div>
+
+            <div class="value">
+                {{ case.clinical or "-" }}
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="description">
+
+        <div class="description-title">
+            Микроскопическое описание
+        </div>
+
+        <div class="description-text">
+            {{ case.description }}
+        </div>
+
+    </div>
+
+    <div class="actions">
+
+        <a class="open-btn"
+           href="{{ url_for('case_detail', id=case.id) }}">
+
+            <button type="button">
+                Открыть исследование
+            </button>
+
+        </a>
+
+    </div>
+
+</div>
+
+{% endfor %}
+
+{% else %}
+
+<div class="empty">
+
+    Исследования не найдены
+
+</div>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</body>
+
+</html>

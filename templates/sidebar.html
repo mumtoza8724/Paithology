@@ -1,0 +1,190 @@
+<div class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+
+        <img
+            src="/static/logo.png"
+            class="sidebar-logo"
+        >
+
+    </div>
+
+    <div class="sidebar-menu">
+
+<a href="/" class="menu-item {% if request.endpoint == 'home' %}active{% endif %}">
+
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<path d="M3 10L12 3L21 10V21H3V10Z"
+stroke="currentColor"
+stroke-width="2"/>
+
+</svg>
+
+<span>Главная</span>
+
+</a>
+
+<a href="/consultants"
+   class="menu-item {% if request.endpoint == 'consultants' %}active{% endif %}">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<circle cx="12" cy="8" r="4"
+stroke="currentColor"
+stroke-width="2"/>
+
+<path d="M4 21C4 17 8 15 12 15C16 15 20 17 20 21"
+stroke="currentColor"
+stroke-width="2"/>
+
+</svg>
+
+<span>Консультанты</span>
+
+</a>
+
+<a href="{{ url_for('consultant_register') }}"
+   class="menu-item {% if request.endpoint == 'consultant_register' %}active{% endif %}">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<rect
+x="4"
+y="3"
+width="16"
+height="18"
+rx="2"
+stroke="currentColor"
+stroke-width="2"/>
+
+<circle
+cx="12"
+cy="9"
+r="2.5"
+stroke="currentColor"
+stroke-width="2"/>
+
+<path
+d="M8 17C8 15 10 14 12 14C14 14 16 15 16 17"
+stroke="currentColor"
+stroke-width="2"/>
+
+</svg>
+
+<span>Стать консультантом</span>
+
+</a>
+
+<a href="{{ url_for('cases') }}"
+class="menu-item {% if request.endpoint == 'cases' %}active{% endif %}">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<path d="M3 6H21V21H3V6Z"
+stroke="currentColor"
+stroke-width="2"/>
+
+<path d="M3 6L6 3H18L21 6"
+stroke="currentColor"
+stroke-width="2"/>
+
+</svg>
+
+<span>Архив исследований</span>
+
+</a>
+
+<div class="sidebar-divider"></div>
+
+<a href="/settings" class="menu-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<circle cx="12" cy="12" r="3"
+stroke="currentColor"
+stroke-width="2"/>
+
+<path d="M12 2V5M12 19V22M2 12H5M19 12H22"
+stroke="currentColor"
+stroke-width="2"/>
+
+</svg>
+    <span>Настройки</span>
+</a>
+
+<a href="/help" class="menu-item">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+
+<circle
+cx="12"
+cy="12"
+r="9"
+stroke="currentColor"
+stroke-width="2"/>
+
+<path
+d="M9.5 9
+C9.5 7.5 10.7 6.5 12.2 6.5
+C13.8 6.5 15 7.5 15 9
+C15 10.2 14.3 10.8 13.4 11.4
+C12.6 11.9 12 12.4 12 13.5"
+stroke="currentColor"
+stroke-width="2"
+stroke-linecap="round"/>
+
+<circle
+cx="12"
+cy="17"
+r="1"
+fill="currentColor"/>
+
+</svg>
+
+<span>Справка</span>
+
+</a>
+
+    </div>
+
+    <div class="sidebar-footer">
+    <a href="/logout" class="menu-item">
+        Выход
+    </a>
+</div>
+
+</div>
+
+<button class="menu-btn" onclick="toggleMenu()">
+
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+
+<path d="M3 6H21" stroke="white" stroke-width="2"/>
+
+<path d="M3 12H21" stroke="white" stroke-width="2"/>
+
+<path d="M3 18H21" stroke="white" stroke-width="2"/>
+
+</svg>
+
+</button>
+
+<script>
+
+function toggleMenu() {
+
+    document
+        .getElementById("sidebar")
+        .classList
+        .toggle("open");
+
+    document
+        .querySelector(".main")
+        ?.classList
+        .toggle("shift");
+
+    document.body.classList.toggle("sidebar-open");
+}
+
+</script>

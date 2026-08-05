@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PAITHOLOGY</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="stylesheet"
+href="{{ url_for('static', filename='sidebar.css') }}">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main">
+
+    <h1 class="page-title">
+        Главная
+    </h1>
+
+    <p class="page-subtitle">
+        Анализ гистологических изображений
+    </p>
+
+<div class="glass-card">
+
+    <form method="POST"
+      enctype="multipart/form-data">
+
+    <div class="form-grid">
+
+    <!-- 1 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-file-earmark-medical"></i>
+</span>
+
+    <input
+        type="text"
+        name="research_number"
+        placeholder="№ исследования">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-calendar-event"></i>
+</span>
+
+    <input
+        type="text"
+        name="admission_date"
+        placeholder="Дата поступления материала"
+        onfocus="this.type='date'">
+</div>
+
+<!-- 2 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-hospital"></i>
+</span>
+
+    <input
+        type="text"
+        name="medical_center"
+        placeholder="Направившее медицинское учреждение">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-person"></i>
+</span>
+
+    <input
+        type="text"
+        name="patient_name"
+        placeholder="ФИО пациента">
+</div>
+
+<!-- 3 строка -->
+<div class="input-group">
+
+    <span class="icon">
+        <i class="bi bi-gender-ambiguous"></i>
+    </span>
+
+    <div class="gender-box">
+
+        <label class="gender-option">
+
+            <input
+                type="radio"
+                name="gender"
+                value="Мужской">
+
+            Муж
+
+        </label>
+
+        <label class="gender-option">
+
+            <input
+                type="radio"
+                name="gender"
+                value="Женский">
+
+            Жен
+
+        </label>
+
+    </div>
+
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-cake2"></i>
+</span>
+
+    <input
+        type="text"
+        name="birth_date"
+        placeholder="Дата рождения"
+        onfocus="this.type='date'">
+</div>
+
+<!-- 4 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-scissors"></i>
+</span>
+
+    <input
+        type="text"
+        name="operation_type"
+        placeholder="Тип операции">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-heart-pulse"></i>
+</span>
+
+    <input
+        list="organs"
+        name="organ"
+        placeholder="Орган">
+</div>
+
+<datalist id="organs">
+    <option value="Молочная железа">
+    <option value="Желудок">
+    <option value="Толстая кишка">
+    <option value="Прямая кишка">
+    <option value="Сигмовидная кишка">
+    <option value="Двенадцатиперстная кишка">
+    <option value="Легкое">
+    <option value="Почка">
+</datalist>
+
+<!-- 5 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-clipboard2-pulse"></i>
+</span>
+
+    <input
+        type="text"
+        name="clinical"
+        placeholder="Клинический диагноз">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-person-badge"></i>
+</span>
+
+    <input
+        type="text"
+        name="doctor"
+        placeholder="ФИО лечащего врача">
+</div>
+
+<!-- 6 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-grid-3x3-gap"></i>
+</span>
+
+    <input
+        type="number"
+        name="slides"
+        placeholder="Количество стекол">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-box-seam"></i>
+</span>
+
+    <input
+        type="number"
+        name="cassettes"
+        placeholder="Количество кассет">
+</div>
+
+<!-- 7 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-palette"></i>
+</span>
+
+    <input
+        list="stains"
+        name="stain_method"
+        placeholder="Метод окраски">
+</div>
+
+<datalist id="stains">
+    <option value="Гематоксилин-эозин">
+    <option value="Ван Гизон">
+    <option value="Папаниколау">
+    <option value="Романовский-Гимзе">
+</datalist>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-file-earmark-check"></i>
+</span>
+
+    <input
+        type="text"
+        name="result_date"
+        placeholder="Дата выдачи результата"
+        onfocus="this.type='date'">
+</div>
+
+<!-- 8 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-eyedropper"></i>
+</span>
+
+    <input
+        type="text"
+        name="lab_worker"
+        placeholder="ФИО лаборанта">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-rulers"></i>
+</span>
+
+    <input
+        type="text"
+        name="material_size"
+        placeholder="Размер материала">
+</div>
+
+<!-- 9 строка -->
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-droplet"></i>
+</span>
+
+    <input
+        type="text"
+        name="material_color"
+        placeholder="Цвет материала">
+</div>
+
+<div class="input-group">
+    <span class="icon">
+    <i class="bi bi-circle-square"></i>
+</span>
+
+    <input
+        type="text"
+        name="material_consistency"
+        placeholder="Консистенция материала">
+</div>
+<br>
+    </div>
+
+<div class="upload-layout">
+
+    <!-- ЛЕВАЯ КОЛОНКА -->
+
+    <div class="upload-left">
+
+        <div class="files-card">
+
+            <div class="card-title">
+
+                Загруженные файлы
+
+                <span id="files-badge">0</span>
+
+            </div>
+
+            <div id="files-list"></div>
+
+        </div>
+
+
+        <div class="info-card">
+
+            <h3>Информация о загрузке</h3>
+
+            <div class="info-row">
+
+                <span>Всего файлов</span>
+
+                <span id="info-count">0</span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span>Общий размер</span>
+
+                <span id="info-size">0 MB</span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span>Поддерживаемые форматы</span>
+
+                <span>JPG PNG TIFF SVS NDPI</span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span>Макс. размер файла</span>
+
+                <span>2 GB</span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span>Статус</span>
+
+                <span class="status-ready">
+
+                    Готово к анализу
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="security-card">
+
+            <div class="security-icon">
+
+               <svg
+width="24"
+height="24"
+viewBox="0 0 24 24"
+fill="none"
+stroke="#8b8bff"
+stroke-width="2">
+
+<path d="M12 2l7 3v6c0 5-3 9-7 11-4-2-7-6-7-11V5z"/>
+
+<path d="M9 12l2 2 4-4"/>
+
+</svg>
+
+            </div>
+
+            <div>
+
+                Безопасность данных :
+<br>
+• Изображения не передаются третьим лицам
+<br>
+• Обработка выполняется локально
+<br>
+• Результаты доступны только авторизованному пользователю
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ПРАВАЯ КОЛОНКА -->
+
+    <div class="upload-right">
+
+        <div class="upload-section">
+
+            <div class="drop-zone">
+
+                <div class="upload-icon">
+
+                    <i class="bi bi-cloud-arrow-up"></i>
+
+                </div>
+
+                <h2>
+
+                    Перетащите изображения сюда
+
+                </h2>
+
+                <p>
+
+                    или нажмите для выбора файлов
+
+                </p>
+
+                <span>
+
+                    Поддерживаемые форматы:
+
+                    JPG, PNG, TIFF, SVS, NDPI
+
+                </span>
+
+                <input
+
+type="file"
+
+id="images"
+
+name="images"
+
+multiple
+
+required
+
+accept=".jpg,.jpeg,.png,.tif,.tiff,.svs,.ndpi"
+
+>
+
+            </div>
+
+        </div>
+
+
+        <div class="preview-header">
+
+<svg
+width="20"
+height="20"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2"
+stroke-linecap="round"
+stroke-linejoin="round">
+
+<rect x="3" y="3" width="18" height="18" rx="2"/>
+
+<circle cx="9" cy="9" r="2"/>
+
+<path d="M21 16l-5-5-9 9"/>
+
+</svg>
+
+<span>
+Предпросмотр загруженных изображений
+</span>
+
+<span id="file-count">
+0 файлов
+</span>
+
+</div>
+
+
+        <div id="preview-container"></div>
+
+
+        <button
+
+            id="start-ai"
+
+            class="start-ai-btn"
+
+            type="submit"
+
+        >
+
+            <div class="ai-icon">
+
+                <svg
+width="24"
+height="24"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2"
+stroke-linecap="round"
+stroke-linejoin="round">
+
+<path d="M6 18h8"/>
+<path d="M3 22h18"/>
+<path d="M14 22a7 7 0 0 0 0-14"/>
+<path d="M14 8V3"/>
+<path d="M10 3h8"/>
+
+</svg>
+
+            </div>
+
+            <div>
+
+                <div>
+
+                    Запустить анализ
+
+                </div>
+
+                <small>
+
+                    Автоматизированный анализ гистологических изображений для поддержки принятия решений врачом-патоморфологом
+
+                </small>
+
+            </div>
+
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+const input = document.getElementById("images");
+
+const dropZone = document.querySelector(".drop-zone");
+
+const preview = document.getElementById("preview-container");
+
+const filesList = document.getElementById("files-list");
+
+const counter = document.getElementById("file-count");
+
+const filesBadge = document.getElementById("files-badge");
+
+const infoCount = document.getElementById("info-count");
+
+const infoSize = document.getElementById("info-size");
+
+
+let selectedFiles = [];
+
+
+/* клик по зоне */
+
+dropZone.onclick = () => input.click();
+
+
+/* выбор файлов */
+
+input.addEventListener(
+
+"change",
+
+function(){
+
+    addFiles(this.files);
+
+}
+
+);
+
+
+/* drag and drop */
+
+dropZone.addEventListener(
+
+"dragover",
+
+function(e){
+
+    e.preventDefault();
+
+    dropZone.classList.add("dragging");
+
+}
+
+);
+
+
+dropZone.addEventListener(
+
+"dragleave",
+
+function(){
+
+    dropZone.classList.remove("dragging");
+
+}
+
+);
+
+
+dropZone.addEventListener(
+
+"drop",
+
+function(e){
+
+    e.preventDefault();
+
+    dropZone.classList.remove("dragging");
+
+    addFiles(e.dataTransfer.files);
+
+}
+
+);
+
+
+/* добавить файлы */
+
+function addFiles(files){
+
+    for(let file of files){
+
+        selectedFiles.push(file);
+
+    }
+
+    updateInput();
+
+    renderFiles();
+
+}
+
+
+/* синхронизация с Flask */
+
+function updateInput(){
+
+    const data = new DataTransfer();
+
+    selectedFiles.forEach(
+
+    file => data.items.add(file)
+
+    );
+
+    input.files = data.files;
+
+}
+
+
+/* удалить */
+
+function removeFile(index){
+
+    selectedFiles.splice(index,1);
+
+    updateInput();
+
+    renderFiles();
+
+}
+
+
+/* отрисовка */
+
+function renderFiles(){
+
+    preview.innerHTML = "";
+
+    filesList.innerHTML = "";
+
+    let total = 0;
+
+
+    counter.innerText =
+
+    selectedFiles.length + " файлов";
+
+
+    filesBadge.innerText =
+
+    selectedFiles.length;
+
+
+    infoCount.innerText =
+
+    selectedFiles.length;
+
+
+    selectedFiles.forEach(
+
+    (file,index)=>{
+
+        total += file.size;
+
+        const url = URL.createObjectURL(file);
+
+
+        preview.innerHTML += `
+
+        <div class="preview-image">
+
+            <button
+
+            class="remove-btn"
+
+            onclick="removeFile(${index})"
+
+            >
+
+            ×
+
+            </button>
+
+
+            <img src="${url}">
+
+
+            <div class="preview-footer">
+
+                <div class="preview-title">
+
+                ${file.name}
+
+                </div>
+
+
+                <div class="preview-size">
+
+                ${(file.size/1048576).toFixed(1)} MB
+
+                </div>
+
+            </div>
+
+        </div>
+
+        `;
+
+
+        filesList.innerHTML += `
+
+        <div class="file-row">
+
+            <span>
+
+            ${file.name}
+
+            </span>
+
+
+            <span>
+
+            ${(file.size/1048576).toFixed(1)} MB
+
+            </span>
+
+        </div>
+
+        `;
+
+    });
+
+
+    /* кнопка добавить ещё */
+
+    preview.innerHTML += `
+
+    <div
+
+    class="add-more"
+
+    onclick="document.getElementById('images').click()"
+
+    >
+
+        <div class="add-icon">
+
+        +
+
+        </div>
+
+        <div>
+
+        Добавить
+
+        <br>
+
+        ещё файлы
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    infoSize.innerText =
+
+    (total/1048576).toFixed(1)
+
+    + " MB";
+
+}
+
+</script>
+
+</form>
+</div>
+</div>
+</body>
+</html>

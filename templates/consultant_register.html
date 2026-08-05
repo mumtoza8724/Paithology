@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PAITHOLOGY</title>
+
+<link rel="stylesheet"
+href="{{ url_for('static', filename='consultant.css') }}">
+
+    <link rel="stylesheet"
+href="{{ url_for('static', filename='sidebar.css') }}">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<form method="POST"
+              enctype="multipart/form-data">
+
+<div class="consultant-container">
+
+    <div class="left-column">
+
+        <div class="photo-card">
+
+    <input
+        type="file"
+        id="photo"
+        name="photo"
+        accept=".jpg,.jpeg,.png,.webp"
+        hidden>
+
+    <label
+        for="photo"
+        class="upload-photo"
+        id="photo-area">
+
+        <div class="avatar-circle">
+
+    <img
+        id="avatar-preview"
+        src="{{ url_for('static', filename='icons/user.svg') }}">
+
+    <div class="avatar-overlay">
+
+    <img
+        src="{{ url_for('static', filename='icons/camera.svg') }}"
+        class="camera-icon">
+
+    <span>
+
+        Изменить фото
+
+    </span>
+
+</div>
+
+</div>
+
+        <h3 class="photo-title"
+            id="photo-title">
+
+            Фото профиля <small>(необязательно)</small>
+
+</h3>
+
+<button
+type="button"
+id="change-photo-btn"
+class="photo-button">
+
+📤 Загрузить фотографию
+
+</button>
+
+<p class="photo-format">
+
+JPG • PNG • WEBP
+
+<br>
+
+до 5 МБ
+
+</p>
+
+</label>
+
+</div>
+
+    </div>
+
+    <div class="center-column">
+
+        <h1>
+
+            Регистрация морфолога-консультанта
+
+        </h1>
+
+        <p>
+
+            Присоединяйтесь к международной сети экспертов PAITHOLOGY
+
+        </p>
+
+
+            <h2>
+
+                Личная информация
+
+            </h2>
+
+            <div class="grid">
+
+                <input
+                name="first_name"
+                placeholder="Имя">
+
+                <input
+                name="last_name"
+                placeholder="Фамилия">
+
+                <input
+                type="email"
+
+                name="email"
+
+                placeholder="Email">
+
+               <select name="degree" class="form-select">
+
+    <option value="" selected disabled hidden>
+        Научная степень
+    </option>
+
+    <option>Без степени</option>
+    <option>PhD</option>
+    <option>Кандидат медицинских наук</option>
+    <option>Доктор медицинских наук</option>
+    <option>Профессор</option>
+
+</select>
+
+                <select name="country" class="form-select">
+    <option value="" selected disabled hidden>
+        Страна
+    </option>
+
+    <option>Узбекистан</option>
+    <option>Россия</option>
+    <option>Казахстан</option>
+    <option>Кыргызстан</option>
+    <option>Таджикистан</option>
+    <option>Туркменистан</option>
+    <option>Азербайджан</option>
+    <option>Армения</option>
+    <option>Грузия</option>
+
+    <option>Турция</option>
+    <option>Германия</option>
+    <option>Франция</option>
+    <option>Италия</option>
+    <option>Испания</option>
+    <option>Великобритания</option>
+
+    <option>США</option>
+    <option>Канада</option>
+
+    <option>Китай</option>
+    <option>Япония</option>
+    <option>Южная Корея</option>
+
+    <option>Индия</option>
+    <option>ОАЭ</option>
+
+</select>
+
+
+                <input
+                name="city"
+
+                placeholder="Город">
+
+            </div>
+
+
+            <input
+
+            name="organization"
+
+            placeholder="Медицинский центр / Организация">
+
+
+            <div class="grid">
+
+                <input
+
+                name="position"
+
+                placeholder="Должность">
+
+
+                <select name="experience" class="form-select">
+
+   <option value="" selected disabled hidden>
+        Стаж работы
+    </option>
+
+    <option>До 1 года</option>
+    <option>1–3 года</option>
+    <option>3–5 лет</option>
+    <option>5–10 лет</option>
+    <option>10–20 лет</option>
+    <option>20–30 лет</option>
+    <option>Более 30 лет</option>
+
+</select>
+
+            </div>
+
+
+
+            <h2>
+
+                Специализация
+
+            </h2>
+
+
+            <div class="specialization-grid">
+
+<label>
+
+<input type="checkbox" name="specialization" value="ЖКТ">
+
+<img src="{{ url_for('static', filename='icons/gastro.svg') }}">
+
+<span>ЖКТ</span>
+
+</label>
+
+
+<label>
+
+<input type="checkbox" name="specialization" value="Молочная железа">
+
+<img src="{{ url_for('static', filename='icons/breast.svg') }}">
+
+<span>Молочная железа</span>
+
+</label>
+
+
+<label>
+
+<input type="checkbox" name="specialization" value="Кожа">
+
+<img src="{{ url_for('static', filename='icons/skin.svg') }}">
+
+<span>Кожа</span>
+
+</label>
+
+
+<label>
+
+<input type="checkbox" name="specialization" value="Матка">
+
+<img src="{{ url_for('static', filename='icons/uterus.svg') }}">
+
+<span>Матка</span>
+
+</label>
+
+
+<label>
+
+<input type="checkbox" name="specialization" value="Лимфомы">
+
+<img src="{{ url_for('static', filename='icons/lymph.svg') }}">
+
+<span>Лимфомы</span>
+
+</label>
+
+<label id="other-card">
+    <input type="checkbox"
+           id="other-checkbox"
+           name="specialization"
+           value="Другое">
+
+    <img src="{{ url_for('static', filename='icons/plus.svg') }}">
+    <span>Другое</span>
+</label>
+
+<input
+    type="text"
+    id="other-specialty"
+    name="other_specialty"
+    placeholder="Введите специализацию"
+    style="display:none;">
+
+</div>
+
+            <div id="other-fields"></div>
+
+            <h2>
+
+                Языки
+
+            </h2>
+
+
+            <div class="languages">
+
+                <label>
+
+<input type="checkbox" name="languages" value="Русский">
+
+<span>Русский</span>
+
+</label>
+
+
+                <label>
+
+<input type="checkbox" name="languages" value="Английский">
+
+<span>Английский</span>
+
+</label>
+
+
+                <label>
+
+<input type="checkbox" name="languages" value="Узбекский">
+
+<span>Узбекский</span>
+
+</label>
+
+
+            </div>
+
+
+            <h2>
+
+                Платёжные реквизиты
+
+            </h2>
+
+
+            <p>
+
+                Используются для автоматического перечисления средств.
+
+            </p>
+
+            <div class="payment-info">
+    <div class="payment-icon">ℹ</div>
+
+    <div>
+        <strong>Международные выплаты</strong>
+
+        <p>
+            Для получения выплат рекомендуем использовать
+            международную банковскую карту <b>Visa</b> или
+            <b>Mastercard</b>. Это позволит получать выплаты
+            от пользователей из любой страны.
+        </p>
+    </div>
+</div>
+
+
+            <div class="grid">
+
+
+                <input
+
+                name="card"
+
+                placeholder="Номер карты">
+
+
+                <input
+
+                name="owner"
+
+                placeholder="Имя владельца карты">
+
+                <div class="price-block">
+
+    <label for="consult_price">
+        Стоимость консультации
+    </label>
+
+    <input
+        type="range"
+        id="consult_price"
+        name="consult_price"
+        min="30"
+        max="70"
+        step="5"
+        value="50">
+
+    <div class="price-value">
+        <span>$30</span>
+
+        <strong id="price-text">$50</strong>
+
+        <span>$70</span>
+    </div>
+
+</div>
+
+            </div>
+
+
+            <h2>
+
+                Время ответа
+
+            </h2>
+
+
+            <div class="response-time">
+
+<label>
+
+<input
+type="radio"
+name="response_time"
+value="1">
+
+до 1 часа
+
+</label>
+
+<label>
+
+<input
+type="radio"
+name="response_time"
+value="6">
+
+до 6 часов
+
+</label>
+
+<label>
+
+<input
+type="radio"
+name="response_time"
+value="24">
+
+до 24 часов
+
+</label>
+
+<label>
+
+<input
+type="radio"
+name="response_time"
+value="48">
+
+до 48 часов
+
+</label>
+
+</div>
+
+            <div class="verification-card">
+
+<h2>Верификация эксперта</h2>
+
+<p>
+
+Загрузите документы для подтверждения квалификации.
+
+</p>
+
+<ul>
+
+<li>Диплом врача</li>
+
+<li>Сертификат специалиста</li>
+
+<li>Лицензия</li>
+
+<li>CV / резюме</li>
+
+<li>Научные публикации (необязательно)</li>
+
+</ul>
+
+<div class="drop-zone">
+
+<input
+type="file"
+id="verification-files"
+name="verification_files"
+multiple
+accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+hidden>
+
+<label for="verification-files" id="drop-area">
+
+    <img src="{{ url_for('static', filename='icons/upload.svg') }}" class="drop-icon">
+
+    <h3>Перетащите документы сюда</h3>
+
+    <p>или нажмите для выбора</p>
+
+    <span>PDF • DOC • DOCX • JPG • PNG</span>
+
+</label>
+
+<div id="selected-files">
+
+Файлы не выбраны
+
+</div>
+
+</div>
+                <br>
+
+                <div class="terms-card">
+
+    <label class="switch">
+
+        <input
+            type="checkbox"
+            id="accept-terms"
+        >
+
+        <span class="slider"></span>
+
+    </label>
+
+    <div class="terms-text">
+
+        <strong>Я принимаю условия платформы PAITHOLOGY</strong>
+
+        <br>
+
+        <small>
+            Нажимая кнопку регистрации, вы соглашаетесь с условиями использования платформы.
+        </small>
+
+    </div>
+
+</div>
+
+            <button>
+
+                Присоединиться к сети консультантов
+
+            </button>
+
+            </div>
+    </div>
+
+
+    <div class="right-column">
+
+        <h2>
+
+            Преимущества работы
+            на платформе PAITHOLOGY
+
+        </h2>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/globe.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Международная сеть экспертов
+
+                </h3>
+
+
+                <p>
+
+                    Сотрудничайте
+                    с ведущими морфологами
+                    из 25+ стран.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/ai.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Поддержка диагностики
+
+                    </h3>
+
+
+                <p>
+
+                    Используйте программу как дополнительный инструмент принятия решений.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/monitor.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Цифровые консультации
+
+                </h3>
+
+
+                <p>
+
+                    Проводите удалённые консультации
+                    с коллегами и клиниками.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/microscope.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Совместный просмотр стёкол
+
+                </h3>
+
+
+                <p>
+
+                    Анализируйте препараты в высоком разрешении.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/education.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Непрерывное образование
+
+                </h3>
+
+
+                <p>
+
+                    Получайте доступ к вебинарам и обучающим материалам.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="advantage">
+
+            <img
+            src="{{ url_for('static',
+            filename='icons/clock.svg') }}">
+
+
+            <div>
+
+                <h3>
+
+                    Гибкий график
+
+                </h3>
+
+
+                <p>
+
+                    Самостоятельно регулируйте количество консультаций и время ответа.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="support-box">
+
+            <h3>
+
+                Есть вопросы?
+
+            </h3>
+
+<br>
+            <p>
+
+                Наша команда поддержки
+                готова помочь вам
+                на каждом этапе.
+
+            </p>
+
+
+            <button>
+
+                Связаться с поддержкой
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</form>
+
+<script>
+
+const input = document.getElementById("verification-files");
+
+const dropArea = document.getElementById("drop-area");
+
+const list = document.getElementById("selected-files");
+
+let files = [];
+
+function updateInput(){
+
+    const dt = new DataTransfer();
+
+    files.forEach(file => dt.items.add(file));
+
+    input.files = dt.files;
+
+}
+
+function renderFiles(){
+
+    list.innerHTML = "";
+
+    if(files.length===0){
+        list.innerHTML = "<p>Файлы не выбраны</p>";
+        return;
+    }
+
+    const success = document.createElement("div");
+    success.className = "upload-success";
+    success.innerHTML = "✔️ Документы готовы к отправке";
+    list.appendChild(success);
+
+    let total = 0;
+
+    files.forEach((file,index)=>{
+
+        total += file.size;
+
+        const row = document.createElement("div");
+
+        row.className = "file-item";
+
+        row.innerHTML = `
+            <div class="file-left">
+                📄 ${file.name}
+            </div>
+
+            <div class="file-delete" onclick="removeFile(${index})">
+                ✕
+            </div>
+        `;
+
+        list.appendChild(row);
+
+    });
+
+    const info = document.createElement("div");
+
+    info.innerHTML = `
+        <strong>Выбрано файлов: ${files.length}</strong><br>
+        Общий размер: ${(total/1024/1024).toFixed(2)} MB
+    `;
+
+    list.appendChild(info);
+
+}
+
+function removeFile(index){
+
+    files.splice(index,1);
+
+    updateInput();
+
+    renderFiles();
+
+}
+
+input.addEventListener("change",()=>{
+
+    for(const file of input.files){
+
+        const exists = files.some(
+
+            f =>
+
+            f.name===file.name &&
+
+            f.size===file.size
+
+        );
+
+        if(!exists){
+
+            files.push(file);
+
+        }
+
+    }
+
+    updateInput();
+
+    renderFiles();
+
+});
+
+dropArea.addEventListener("dragover",(e)=>{
+
+    e.preventDefault();
+
+    dropArea.classList.add("drag");
+
+});
+
+dropArea.addEventListener("dragleave",()=>{
+
+    dropArea.classList.remove("drag");
+
+});
+
+dropArea.addEventListener("drop",(e)=>{
+
+    e.preventDefault();
+
+    dropArea.classList.remove("drag");
+
+    for(const file of e.dataTransfer.files){
+
+        const exists = files.some(
+
+            f =>
+
+            f.name===file.name &&
+
+            f.size===file.size
+
+        );
+
+        if(!exists){
+
+            files.push(file);
+
+        }
+
+    }
+
+    updateInput();
+
+    renderFiles();
+
+});
+
+</script>
+
+<script>
+
+document.querySelectorAll(
+
+'input[type="radio"]'
+
+).forEach(radio=>{
+
+radio.addEventListener(
+
+'click',
+
+function(){
+
+if(this.dataset.checked==='true'){
+
+this.checked=false;
+
+this.dataset.checked='false';
+
+}
+
+else{
+
+document
+
+.querySelectorAll(
+
+`input[name="${this.name}"]`
+
+)
+
+.forEach(item=>{
+
+item.dataset.checked='false';
+
+});
+
+this.dataset.checked='true';
+
+}
+
+}
+
+);
+
+});
+
+</script>
+
+<script>
+
+const photoInput =
+document.getElementById("photo");
+
+const avatar =
+document.getElementById("avatar-preview");
+
+const button =
+document.getElementById("change-photo-btn");
+
+const title =
+document.getElementById("photo-title");
+
+photoInput.addEventListener(
+"change",
+function(){
+
+const file=this.files[0];
+
+if(!file){
+
+return;
+
+}
+
+if(!file.type.startsWith("image/")){
+
+alert("Выберите изображение.");
+
+this.value="";
+
+return;
+
+}
+
+const reader=new FileReader();
+
+reader.onload=function(e){
+
+avatar.src=e.target.result;
+
+title.innerText="Фотография загружена";
+
+button.innerHTML = `
+<svg width="18" height="18" viewBox="0 0 24 24"
+fill="none"
+xmlns="http://www.w3.org/2000/svg">
+
+<path
+d="M5 7h3l1.4-2h5.2L16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"
+stroke="white"
+stroke-width="2"/>
+
+<circle
+cx="12"
+cy="13"
+r="4"
+stroke="white"
+stroke-width="2"/>
+
+</svg>
+
+<span>Изменить фотографию</span>
+`;
+
+}
+
+reader.readAsDataURL(file);
+
+});
+
+button.addEventListener(
+"click",
+function(){
+
+photoInput.click();
+
+});
+
+</script>
+
+<script>
+const slider = document.getElementById("consult_price");
+const price = document.getElementById("price-text");
+
+slider.oninput = function () {
+    price.innerHTML = "$" + this.value;
+};
+</script>
+
+<script>
+document.getElementById("other-checkbox").addEventListener("change", function() {
+
+    const container = document.getElementById("other-fields");
+
+    const input = document.createElement("input");
+
+    input.type = "text";
+    input.name = "other_specialty";
+    input.placeholder = "Введите специализацию";
+
+    container.appendChild(input);
+
+    this.checked = false;
+
+});
+
+</script>
+
+</body>
+
+</html>

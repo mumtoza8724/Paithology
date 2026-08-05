@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="64"
+     height="64"
+     viewBox="0 0 64 64"
+     fill="none">
+
+    <defs>
+        <linearGradient id="uploadGradient"
+                        x1="0"
+                        y1="0"
+                        x2="64"
+                        y2="64"
+                        gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#d9a8ff"/>
+            <stop offset="100%" stop-color="#9b6dff"/>
+        </linearGradient>
+    </defs>
+
+    <circle
+        cx="32"
+        cy="32"
+        r="30"
+        fill="url(#uploadGradient)"
+        opacity="0.15"/>
+
+    <circle
+        cx="32"
+        cy="32"
+        r="29"
+        stroke="url(#uploadGradient)"
+        stroke-width="2"/>
+
+    <path
+        d="M32 42V20"
+        stroke="url(#uploadGradient)"
+        stroke-width="3.5"
+        stroke-linecap="round"/>
+
+    <path
+        d="M22 30L32 20L42 30"
+        stroke="url(#uploadGradient)"
+        stroke-width="3.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+    <path
+        d="M20 46H44"
+        stroke="url(#uploadGradient)"
+        stroke-width="3.5"
+        stroke-linecap="round"/>
+
+</svg>

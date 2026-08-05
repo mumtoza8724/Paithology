@@ -1,0 +1,225 @@
+.sidebar{
+
+    position:fixed;
+
+    top:0;
+
+    left:-350px;
+
+    width:320px;
+
+    box-sizing: border-box;
+
+    height:100vh;
+
+    background:rgba(10,10,35,.96);
+
+    backdrop-filter:blur(25px);
+
+    border-right:1px solid rgba(139,92,246,.2);
+
+    transition:0.3s;
+
+    z-index:1000;
+
+    padding:20px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    font-size: 18px;
+
+}
+
+.sidebar.open{
+    left:0;
+}
+
+.menu-btn{
+
+    position:fixed;
+
+    top:20px;
+
+    left:20px;
+
+    width:52px;
+
+    height:52px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:rgba(20,20,45,.95);
+
+    backdrop-filter:blur(20px);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    z-index:2000;
+
+    transition:.2s;
+
+}
+
+.menu-btn:hover{
+
+    background:rgba(124,77,255,.25);
+
+}
+
+.sidebar-logo{
+
+    width:250px;
+
+    display:block;
+
+    margin:auto;
+
+}
+
+.sidebar-header{
+
+    text-align:center;
+    margin-bottom:10px;
+
+}
+
+.sidebar-header h2{
+
+    margin-top:15px;
+
+    color:white;
+
+}
+
+.sidebar-header p{
+
+    color:#b7b8d3;
+
+    font-size:14px;
+
+}
+
+.sidebar-menu{
+
+    margin-top:8px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    width: 100%;
+
+    gap:8px;
+
+}
+
+.menu-item:hover{
+
+    background:
+    rgba(
+        124,
+        77,
+        255,
+        .25
+    );
+
+}
+
+.active{
+
+    background:
+    linear-gradient(
+        90deg,
+        #7c4dff,
+        #5e35b1
+    );
+
+}
+
+.sidebar-footer{
+    position:absolute;
+    bottom:25px;
+    left:20px;
+    right:20px;
+}
+
+.menu-item.active {
+    background: rgba(214,180,255,.12);
+    color: #d6b4ff;
+    border-left: 3px solid #d6b4ff;
+}
+
+.menu-item.active svg {
+    color: #d6b4ff;
+}
+
+body{
+    transition: padding-left .3s ease;
+}
+
+body.sidebar-open{
+    padding-left:260px;
+}
+
+.sidebar-divider{
+    width:100%;
+
+    height:1px;
+
+    margin:12px 0;
+
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(180,140,255,.35),
+        transparent
+    );
+
+}
+
+.menu-item{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    text-decoration:none;
+
+    color:white;
+
+    padding:15px;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    border-radius:14px;
+
+    transition:.2s;
+
+}
+
+.menu-item svg{
+
+    width:20px;
+
+    height:20px;
+
+    flex-shrink:0;
+
+}
+
+
+
+
