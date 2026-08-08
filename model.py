@@ -1,3 +1,14 @@
+import os
+import time
+
+# Render работает без GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+# Не разрешаем TensorFlow создавать много CPU-потоков
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+
 from PIL import Image
 import tensorflow as tf
 import numpy as np
@@ -5,9 +16,15 @@ import cv2
 
 from collections import Counter
 
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
+
 model = tf.keras.models.load_model(
-    "paithology_efficientnet.keras"
+    "paithology_efficientnet.keras",
+    compile=False
 )
+
+print("EfficientNet model loaded", flush=True)
 
 import json
 
@@ -1375,12 +1392,26 @@ def analyze(
 
             img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
 
-            prediction = model.predict(
+            print("INFERENCE START", flush=True)
+
+            start_time = time.perf_counter()
+
+            input_tensor = tf.convert_to_tensor(
                 img_array,
-                verbose=0
+                dtype=tf.float32
             )
 
-            prediction = prediction[0]
+            prediction = model(
+                input_tensor,
+                training=False
+            ).numpy()[0]
+
+            elapsed = time.perf_counter() - start_time
+
+            print(
+                f"INFERENCE DONE: {elapsed:.2f} sec",
+                flush=True
+            )
 
             print("Предсказание:")
 
