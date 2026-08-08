@@ -301,7 +301,12 @@ def cases():
 
     user_id = session.get("user_id")
 
-    query = Case.query.filter_by(user_id=user_id)
+    if not user_id:
+        return redirect("/login")
+
+    current_user = User.query.get(user_id)
+
+    query = Case.query
 
 
     if organ:
