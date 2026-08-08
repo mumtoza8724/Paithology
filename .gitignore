@@ -7,6 +7,9 @@ dataset/
 *.pt
 *.pth
 
+# Разрешить основную EfficientNet модель для Render
+!paithology_efficientnet.keras
+
 # Database
 instance/
 *.db
