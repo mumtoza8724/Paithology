@@ -25,6 +25,8 @@ href="{{ url_for('static', filename='sidebar.css') }}">
 <form method="POST"
               enctype="multipart/form-data">
 
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 <div class="consultant-container">
 
     <div class="left-column">

@@ -470,14 +470,24 @@ class="btn back">
 
 </a>
 
-<a
-href="/delete_case/{{case.id}}"
+<form
+method="POST"
+action="{{ url_for('delete_case', id=case.id) }}"
+style="display:inline"
+onsubmit="return confirm('Удалить исследование?');">
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<button
+type="submit"
 class="btn delete"
-onclick="return confirm('Удалить исследование?');">
+style="font-family:inherit">
 
 Удалить
 
-</a>
+</button>
+
+</form>
 
 </div>
 

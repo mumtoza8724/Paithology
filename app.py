@@ -5,7 +5,10 @@ from flask import (
     redirect,
     url_for,
     session,
-    send_file
+    send_file,
+    send_from_directory,
+    abort,
+    g
 )
 from model import analyze
 from database import (
@@ -19,10 +22,58 @@ from qr_generator import create_qr
 from datetime import datetime
 
 import os
+import io
+import re
+import hmac
+import secrets
+import posixpath
+from functools import wraps
 from werkzeug.utils import secure_filename
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
 
 app = Flask(__name__)
-app.secret_key = "paithology_secret"
+
+
+def load_secret_key():
+
+    key = os.environ.get("PAITHOLOGY_SECRET_KEY")
+
+    if key:
+        return key
+
+    # Без переменной окружения ключ создаётся один раз и хранится
+    # в папке instance (она не попадает в git)
+    os.makedirs(app.instance_path, exist_ok=True)
+
+    key_path = os.path.join(app.instance_path, "secret_key")
+
+    if not os.path.exists(key_path):
+
+        tmp_path = key_path + "." + secrets.token_hex(8)
+
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(secrets.token_hex(32))
+
+        try:
+            # link не перезаписывает файл, созданный другим процессом
+            os.link(tmp_path, key_path)
+        except FileExistsError:
+            pass
+        finally:
+            os.remove(tmp_path)
+
+    with open(key_path, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
+app.secret_key = load_secret_key()
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 UPLOAD_FOLDER = "static/uploads"
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -37,9 +88,30 @@ os.makedirs(DOCUMENT_FOLDER, exist_ok=True)
 app.config["PROFILE_FOLDER"] = PROFILE_FOLDER
 app.config["DOCUMENT_FOLDER"] = DOCUMENT_FOLDER
 
+# Документы консультантов хранятся вне static и выдаются только администратору
+PRIVATE_UPLOAD_FOLDER = os.environ.get(
+    "PAITHOLOGY_PRIVATE_UPLOADS",
+    os.path.join(app.root_path, "private_uploads")
+)
+
+app.config["PRIVATE_DOCUMENT_FOLDER"] = os.path.join(
+    PRIVATE_UPLOAD_FOLDER,
+    "documents"
+)
+os.makedirs(app.config["PRIVATE_DOCUMENT_FOLDER"], exist_ok=True)
+
+# Старые документы остаются на месте, но публичный доступ к ним закрыт
+app.config["LEGACY_DOCUMENT_FOLDER"] = os.path.join(
+    app.root_path,
+    DOCUMENT_FOLDER
+)
+
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "sqlite:///paithology.db"
+] = os.environ.get(
+    "PAITHOLOGY_DATABASE_URI",
+    "sqlite:///paithology.db"
+)
 
 
 db.init_app(app)
@@ -48,6 +120,157 @@ db.init_app(app)
 with app.app_context():
 
     db.create_all()
+
+
+PASSWORD_HASH_METHOD = "pbkdf2:sha256:600000"
+
+# salt_length=12 даёт хеш длиной 99 символов, он помещается в User.password
+PASSWORD_SALT_LENGTH = 12
+
+PASSWORD_HASH_PATTERN = re.compile(
+    r"^pbkdf2:sha256:\d+\$[^$]+\$[0-9a-f]{64}$"
+)
+
+
+def hash_password(password):
+
+    return generate_password_hash(
+        password,
+        method=PASSWORD_HASH_METHOD,
+        salt_length=PASSWORD_SALT_LENGTH
+    )
+
+
+def verify_password(stored, password):
+
+    if not stored or password is None:
+        return False
+
+    if PASSWORD_HASH_PATTERN.match(stored):
+        return check_password_hash(stored, password)
+
+    # Старые учётные записи с паролем в открытом виде продолжают входить
+    return hmac.compare_digest(
+        stored.encode("utf-8"),
+        password.encode("utf-8")
+    )
+
+
+def get_current_user():
+
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return None
+
+    return db.session.get(User, user_id)
+
+
+def admin_usernames():
+
+    return {
+        name.strip()
+        for name in os.environ.get("PAITHOLOGY_ADMINS", "").split(",")
+        if name.strip()
+    }
+
+
+def is_admin(user):
+
+    return user is not None and user.username in admin_usernames()
+
+
+def login_required(view):
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+
+        user = get_current_user()
+
+        if not user:
+            session.pop("user_id", None)
+            return redirect("/login")
+
+        g.user = user
+
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def admin_required(view):
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+
+        user = get_current_user()
+
+        if not user:
+            session.pop("user_id", None)
+            return redirect("/login")
+
+        if not is_admin(user):
+            abort(403)
+
+        g.user = user
+
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def get_own_case_or_404(id):
+
+    case = db.session.get(Case, id)
+
+    # Чужое исследование неотличимо от несуществующего
+    if case is None or case.user_id is None or case.user_id != g.user.id:
+        abort(404)
+
+    return case
+
+
+def csrf_token():
+
+    token = session.get("csrf_token")
+
+    if not token:
+        token = secrets.token_hex(32)
+        session["csrf_token"] = token
+
+    return token
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
+@app.before_request
+def security_checks():
+
+    if request.endpoint == "static":
+
+        filename = (request.view_args or {}).get("filename", "")
+
+        normalized = posixpath.normpath(
+            filename.replace("\\", "/")
+        ).lstrip("/").lower()
+
+        if normalized.startswith("uploads/documents/"):
+            abort(404)
+
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+
+        sent = request.form.get("csrf_token") or request.headers.get(
+            "X-CSRF-Token"
+        )
+
+        expected = session.get("csrf_token")
+
+        if not sent or not expected or not hmac.compare_digest(sent, expected):
+            abort(
+                400,
+                description="Сессия устарела. Обновите страницу и повторите действие."
+            )
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -283,6 +506,7 @@ def home():
     )
 
 @app.route("/cases")
+@login_required
 def cases():
 
     organ=request.args.get(
@@ -299,14 +523,11 @@ def cases():
         ""
     )
 
-    user_id = session.get("user_id")
+    current_user = g.user
 
-    if not user_id:
-        return redirect("/login")
-
-    current_user = User.query.get(user_id)
-
-    query = Case.query
+    query = Case.query.filter_by(
+        user_id=current_user.id
+    )
 
 
     if organ:
@@ -344,8 +565,6 @@ def cases():
     for i, case in enumerate(all_cases, start=1):
         case.display_number = i
 
-    current_user = User.query.get(session["user_id"])
-
     return render_template(
         "cases.html",
         cases=all_cases,
@@ -353,13 +572,12 @@ def cases():
     )
 
 @app.route("/case/<int:id>")
+@login_required
 def case_detail(id):
 
-    case=Case.query.get_or_404(
-        id
-    )
+    case = get_own_case_or_404(id)
 
-    current_user = User.query.get(session["user_id"])
+    current_user = g.user
 
     user_cases = Case.query.filter_by(
         user_id=case.user_id
@@ -381,28 +599,30 @@ def case_detail(id):
         current_user=current_user
     )
 
-@app.route("/delete_case/<int:id>")
+@app.route("/delete_case/<int:id>", methods=["POST"])
+@login_required
 def delete_case(id):
 
-    case = Case.query.get_or_404(id)
+    case = get_own_case_or_404(id)
 
     db.session.delete(case)
     db.session.commit()
 
     return redirect(url_for("cases"))
 
-from doc_generator import create_doc
-from flask import send_file
-
 @app.route("/report/<int:id>")
+@login_required
 def report(id):
 
-    case = Case.query.get_or_404(id)
+    case = get_own_case_or_404(id)
 
     image_path = ""
 
     if case.images:
         image_path = case.images.split(",")[0]
+
+    # Отчёт собирается в памяти и не сохраняется в публичной папке static
+    buffer = io.BytesIO()
 
     create_doc(
         medical_center=case.medical_center,
@@ -425,12 +645,17 @@ def report(id):
         material_consistency=case.material_consistency,
         image_path=image_path,
         description=case.description,
-        conclusion=case.conclusion
+        conclusion=case.conclusion,
+        output=buffer
     )
 
+    buffer.seek(0)
+
     return send_file(
-        "static/report.docx",
-        as_attachment=True
+        buffer,
+        as_attachment=True,
+        download_name=f"report_{case.id}.docx",
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
 @app.route("/consultant-register", methods=["GET", "POST"])
@@ -501,7 +726,7 @@ def consultant_register():
                 filename = secure_filename(file.filename)
 
                 path = os.path.join(
-                    app.config["DOCUMENT_FOLDER"],
+                    app.config["PRIVATE_DOCUMENT_FOLDER"],
                     filename
                 )
 
@@ -624,6 +849,10 @@ def register():
             "password"
         )
 
+        if not username or not password:
+
+            return "Введите логин и пароль"
+
         existing = User.query.filter_by(
             username=username
         ).first()
@@ -636,7 +865,7 @@ def register():
 
             username=username,
 
-            password=password
+            password=hash_password(password)
 
         )
 
@@ -667,11 +896,12 @@ def login():
         )
 
         user = User.query.filter_by(
-            username=username,
-            password=password
+            username=username
         ).first()
 
-        if user:
+        if user and verify_password(user.password, password):
+
+            session.clear()
 
             session["user_id"] = user.id
 
@@ -718,6 +948,7 @@ def buy_pro():
     """
 
 @app.route("/admin/consultants")
+@admin_required
 def admin_consultants():
 
     consultants = Consultant.query.all()
@@ -727,7 +958,32 @@ def admin_consultants():
         consultants=consultants
     )
 
-@app.route("/approve_consultant/<int:id>")
+@app.route("/admin/consultants/<int:id>/documents/<path:filename>")
+@admin_required
+def consultant_document(id, filename):
+
+    consultant = Consultant.query.get_or_404(id)
+
+    documents = [
+        d for d in (consultant.documents or "").split(";") if d
+    ]
+
+    # Выдаём только файлы, привязанные к этому консультанту
+    if filename not in documents:
+        abort(404)
+
+    for folder in (
+        app.config["PRIVATE_DOCUMENT_FOLDER"],
+        app.config["LEGACY_DOCUMENT_FOLDER"]
+    ):
+
+        if os.path.isfile(os.path.join(folder, filename)):
+            return send_from_directory(folder, filename)
+
+    abort(404)
+
+@app.route("/approve_consultant/<int:id>", methods=["POST"])
+@admin_required
 def approve_consultant(id):
 
     consultant = Consultant.query.get_or_404(id)
@@ -738,7 +994,8 @@ def approve_consultant(id):
 
     return redirect(url_for("admin_consultants"))
 
-@app.route("/reject_consultant/<int:id>")
+@app.route("/reject_consultant/<int:id>", methods=["POST"])
+@admin_required
 def reject_consultant(id):
 
     consultant = Consultant.query.get_or_404(id)

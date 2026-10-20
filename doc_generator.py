@@ -23,7 +23,8 @@ def create_doc(
         material_consistency,
         image_path,
         description,
-        conclusion
+        conclusion,
+        output="static/report.docx"
 ):
 
     doc=Document()
@@ -153,6 +154,7 @@ def create_doc(
     )
 
 
+    # output может быть путём к файлу или объектом в памяти (BytesIO)
     doc.save(
-        "static/report.docx"
+        output
     )
