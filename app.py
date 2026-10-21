@@ -28,6 +28,7 @@ import hmac
 import secrets
 import posixpath
 from functools import wraps
+import click
 from werkzeug.utils import secure_filename
 from werkzeug.security import (
     generate_password_hash,
@@ -37,42 +38,116 @@ from werkzeug.security import (
 app = Flask(__name__)
 
 
-def load_secret_key():
+MIN_SECRET_KEY_LENGTH = 32
 
-    key = os.environ.get("PAITHOLOGY_SECRET_KEY")
 
-    if key:
-        return key
+class SecretKeyError(RuntimeError):
+    pass
 
-    # Без переменной окружения ключ создаётся один раз и хранится
-    # в папке instance (она не попадает в git)
-    os.makedirs(app.instance_path, exist_ok=True)
 
-    key_path = os.path.join(app.instance_path, "secret_key")
+def env_value(name):
 
-    if not os.path.exists(key_path):
+    # Пустая строка в переменной окружения считается отсутствующим значением
+    value = os.environ.get(name, "").strip()
 
-        tmp_path = key_path + "." + secrets.token_hex(8)
+    return value or None
 
-        with open(tmp_path, "w", encoding="utf-8") as f:
+
+def env_flag(name, default):
+
+    value = env_value(name)
+
+    if value is None:
+        return default
+
+    return value.lower() in ("1", "true", "yes", "on")
+
+
+def create_secret_key_file(key_path):
+
+    tmp_path = key_path + "." + secrets.token_hex(8)
+
+    # Файл ключа доступен только владельцу процесса
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+
+    try:
+
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(secrets.token_hex(32))
+            f.flush()
+            os.fsync(f.fileno())
 
         try:
             # link не перезаписывает файл, созданный другим процессом
             os.link(tmp_path, key_path)
         except FileExistsError:
             pass
-        finally:
-            os.remove(tmp_path)
 
-    with open(key_path, "r", encoding="utf-8") as f:
-        return f.read().strip()
+    finally:
+        os.remove(tmp_path)
 
 
-app.secret_key = load_secret_key()
+def load_secret_key(instance_path):
+
+    key = env_value("PAITHOLOGY_SECRET_KEY")
+
+    if key is not None:
+
+        if len(key) < MIN_SECRET_KEY_LENGTH:
+            raise SecretKeyError(
+                "PAITHOLOGY_SECRET_KEY слишком короткий: нужно не меньше "
+                f"{MIN_SECRET_KEY_LENGTH} символов"
+            )
+
+        return key
+
+    # Без переменной окружения ключ создаётся один раз и хранится
+    # в папке instance (она не попадает в git)
+    key_path = os.path.join(instance_path, "secret_key")
+
+    try:
+
+        os.makedirs(instance_path, exist_ok=True)
+
+        if not os.path.exists(key_path):
+            create_secret_key_file(key_path)
+
+        with open(key_path, "r", encoding="utf-8") as f:
+            key = f.read().strip()
+
+    except (OSError, UnicodeDecodeError) as e:
+        raise SecretKeyError(
+            f"Не удалось создать или прочитать {key_path} "
+            f"({type(e).__name__}). Задайте PAITHOLOGY_SECRET_KEY "
+            "или дайте приложению право записи в папку instance"
+        ) from None
+
+    if len(key) < MIN_SECRET_KEY_LENGTH:
+        raise SecretKeyError(
+            f"Файл {key_path} пустой или повреждён. Удалите его, чтобы "
+            "ключ создался заново, или задайте PAITHOLOGY_SECRET_KEY"
+        )
+
+    try:
+        if os.stat(key_path).st_mode & 0o077:
+            os.chmod(key_path, 0o600)
+    except OSError:
+        pass
+
+    return key
+
+
+app.secret_key = load_secret_key(app.instance_path)
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# На Render (платформа задаёт переменную RENDER) cookie передаются только
+# по HTTPS. Для локальной работы без HTTPS: PAITHOLOGY_SECURE_COOKIES=0
+app.config["SESSION_COOKIE_SECURE"] = env_flag(
+    "PAITHOLOGY_SECURE_COOKIES",
+    env_value("RENDER") is not None
+)
 
 UPLOAD_FOLDER = "static/uploads"
 
@@ -89,10 +164,9 @@ app.config["PROFILE_FOLDER"] = PROFILE_FOLDER
 app.config["DOCUMENT_FOLDER"] = DOCUMENT_FOLDER
 
 # Документы консультантов хранятся вне static и выдаются только администратору
-PRIVATE_UPLOAD_FOLDER = os.environ.get(
-    "PAITHOLOGY_PRIVATE_UPLOADS",
-    os.path.join(app.root_path, "private_uploads")
-)
+PRIVATE_UPLOAD_FOLDER = env_value(
+    "PAITHOLOGY_PRIVATE_UPLOADS"
+) or os.path.join(app.root_path, "private_uploads")
 
 app.config["PRIVATE_DOCUMENT_FOLDER"] = os.path.join(
     PRIVATE_UPLOAD_FOLDER,
@@ -108,10 +182,9 @@ app.config["LEGACY_DOCUMENT_FOLDER"] = os.path.join(
 
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = os.environ.get(
-    "PAITHOLOGY_DATABASE_URI",
-    "sqlite:///paithology.db"
-)
+] = env_value(
+    "PAITHOLOGY_DATABASE_URI"
+) or "sqlite:///paithology.db"
 
 
 db.init_app(app)
@@ -180,6 +253,18 @@ def is_admin(user):
     return user is not None and user.username in admin_usernames()
 
 
+def normalize_username(username):
+
+    return (username or "").strip().casefold()
+
+
+def is_reserved_admin_username(username):
+
+    reserved = {normalize_username(name) for name in admin_usernames()}
+
+    return normalize_username(username) in reserved
+
+
 def login_required(view):
 
     @wraps(view)
@@ -230,6 +315,20 @@ def get_own_case_or_404(id):
     return case
 
 
+def csrf_token_matches(sent, expected):
+
+    if not sent or not expected:
+        return False
+
+    try:
+        return hmac.compare_digest(
+            sent.encode("utf-8"),
+            expected.encode("utf-8")
+        )
+    except (TypeError, UnicodeError):
+        return False
+
+
 def csrf_token():
 
     token = session.get("csrf_token")
@@ -266,7 +365,7 @@ def security_checks():
 
         expected = session.get("csrf_token")
 
-        if not sent or not expected or not hmac.compare_digest(sent, expected):
+        if not csrf_token_matches(sent, expected):
             abort(
                 400,
                 description="Сессия устарела. Обновите страницу и повторите действие."
@@ -853,6 +952,12 @@ def register():
 
             return "Введите логин и пароль"
 
+        # Логины администраторов нельзя занять через публичную регистрацию:
+        # иначе после сброса базы посторонний получил бы права администратора
+        if is_reserved_admin_username(username):
+
+            return "Этот логин недоступен для регистрации"
+
         existing = User.query.filter_by(
             username=username
         ).first()
@@ -913,7 +1018,7 @@ def login():
         "login.html"
     )
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
 
     session.clear()
@@ -1005,6 +1110,41 @@ def reject_consultant(id):
     db.session.commit()
 
     return redirect(url_for("admin_consultants"))
+
+@app.cli.command("create-admin")
+@click.argument("username")
+def create_admin(username):
+    """Создаёт учётную запись администратора из PAITHOLOGY_ADMINS."""
+
+    if username not in admin_usernames():
+        raise click.ClickException(
+            "Этот логин не указан в PAITHOLOGY_ADMINS"
+        )
+
+    if User.query.filter_by(username=username).first():
+        raise click.ClickException(
+            "Пользователь с таким логином уже существует"
+        )
+
+    password = click.prompt(
+        "Пароль",
+        hide_input=True,
+        confirmation_prompt=True
+    )
+
+    if not password.strip():
+        raise click.ClickException("Пароль не может быть пустым")
+
+    db.session.add(
+        User(
+            username=username,
+            password=hash_password(password)
+        )
+    )
+
+    db.session.commit()
+
+    click.echo("Администратор создан")
 
 if __name__=="__main__":
 

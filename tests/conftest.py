@@ -23,7 +23,9 @@ os.environ["PAITHOLOGY_DATABASE_URI"] = "sqlite:///" + os.path.join(
     TMP_DIR,
     "test.db"
 )
-os.environ["PAITHOLOGY_SECRET_KEY"] = "test-secret-key"
+os.environ["PAITHOLOGY_SECRET_KEY"] = "test-secret-key-for-paithology-tests-0123456789"
+os.environ.pop("PAITHOLOGY_SECURE_COOKIES", None)
+os.environ.pop("RENDER", None)
 os.environ["PAITHOLOGY_PRIVATE_UPLOADS"] = os.path.join(
     TMP_DIR,
     "private_uploads"
