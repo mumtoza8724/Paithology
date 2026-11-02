@@ -1,305 +1,627 @@
 """
 Инвентаризация снимков исследований (только чтение).
 
-Сопоставляет пути из Case.images с файлами в папке загрузок:
-- отсутствующие файлы (ссылка есть, файла нет);
-- неиспользуемые файлы (файл есть, ссылок нет);
+Сопоставляет пути из Case.images с файлами в папке загрузок и сообщает:
+- отсутствующие и неиспользуемые файлы;
 - файлы, на которые ссылаются несколько исследований (в том числе
   исследования разных пользователей);
-- ссылки за пределами папки загрузок и нестандартные форматы путей.
+- пути особых видов: абсолютные Windows-пути, пути в стиле URL, пути за
+  пределами папки загрузок, ссылки на папки, символические ссылки,
+  служебные подпапки и возможные совпадения после Unicode-нормализации;
+- подозрительные имена файлов («jpg», «image.png», «IMG_0001.jpg»), при
+  которых разные загрузки могли перезаписать друг друга.
 
-Скрипт ничего не изменяет: база открывается в режиме только для чтения,
-файлы не открываются на запись, не перемещаются и не удаляются.
+Скрипт ничего не изменяет и не исправляет:
+- база открывается только для чтения (mode=ro, PRAGMA query_only);
+- база в режиме WAL и база с файлами -wal/-shm/-journal не открываются,
+  чтобы SQLite не создавал и не менял служебные файлы (см. --immutable-copy);
+- файлы только перечисляются через lstat; с --checksums читаются лишь
+  обычные файлы, без перехода по символическим ссылкам.
 
 В отчёт не попадают имена пациентов, клинические сведения и содержимое
-снимков. Имена файлов по умолчанию заменяются коротким хешем, потому что
-в имени файла могут быть персональные данные. Выводятся только id
-исследований, id пользователей, хеши путей и агрегированные количества.
+снимков: из базы читаются только id, user_id и images. Файлы обозначаются
+псевдонимами file-0001, file-0002 …, которые действуют только внутри одного
+отчёта и не позволяют восстановить имя файла.
 
-Запуск (из корня проекта):
-    python scripts/inventory_case_images.py \
-        --db instance/paithology.db --uploads static/uploads
-
-Параметры:
-    --project-root  папка, относительно которой записаны пути в базе
-                    (по умолчанию текущая папка)
-    --checksums     дополнительно посчитать SHA-256 файлов (только чтение),
-                    чтобы найти одинаковые по содержимому файлы
-    --json          вывести результат в JSON
-    --show-filenames  показать реальные имена файлов вместо хешей
-                    (может раскрыть персональные данные, по умолчанию выкл.)
+Коды завершения:
+    0  проверка выполнена (без --fail-on-issues — даже при найденных проблемах)
+    1  с --fail-on-issues: найдены проблемы
+    2  ошибка входных данных: база, папка загрузок, аргументы, режим WAL
 """
 
 import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
+import stat
 import sys
+import unicodedata
 from collections import Counter, defaultdict
+from pathlib import Path
 
+
+EXIT_OK = 0
+EXIT_ISSUES = 1
+EXIT_INPUT_ERROR = 2
 
 # Подпапки загрузок, которые не относятся к снимкам исследований
-NON_CASE_SUBFOLDERS = {"profiles", "documents"}
+RESERVED_SUBFOLDERS = {"profiles", "documents"}
 
 KNOWN_EXTENSIONS = {"jpg", "jpeg", "png", "tif", "tiff", "svs", "ndpi"}
 
 BROWSER_RENDERABLE = {"jpg", "jpeg", "png"}
 
+WINDOWS_ABSOLUTE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\)")
 
-def path_id(relative_path):
+URL_STYLE = re.compile(r"^(?:https?://|/static/)", re.IGNORECASE)
 
-    return hashlib.sha256(relative_path.encode("utf-8")).hexdigest()[:12]
+GENERIC_NAME = re.compile(
+    r"^(?:img|image|dsc|dscn|dcim|pxl|mvimg|photo|pic|picture|scan|slide|"
+    r"screenshot|untitled|file|download|snimok|foto)[ _\-]?\d*(?:\.\w+)?$",
+    re.IGNORECASE
+)
 
+DIGITS_ONLY = re.compile(r"^\d+(?:\.\w+)?$")
 
-def file_extension(name):
+ISSUE_TITLES = {
+    "missing": "Отсутствующие файлы (ссылка есть, файла нет)",
+    "outside_uploads": "Пути за пределами папки загрузок",
+    "windows_absolute": "Абсолютные Windows-пути (не проверялись)",
+    "url_style": "Пути в стиле URL (не проверялись)",
+    "absolute_path": "Абсолютные пути (не проверялись)",
+    "windows_separators": "Относительные пути с обратными слэшами",
+    "directory": "Ссылки на папки",
+    "symlink": "Ссылки через символические ссылки (не открывались)",
+    "special": "Ссылки на специальные файлы (FIFO, сокеты, устройства)",
+    "reserved_subfolder": "Ссылки на служебные подпапки (profiles, documents)",
+    "unicode_candidates": "Возможные совпадения после Unicode-нормализации",
+    "duplicated_within_case": "Повтор одного файла внутри исследования",
+    "shared": "Файлы, общие для нескольких исследований",
+    "suspicious_names": "Подозрительные имена файлов (проверить вручную)",
+    "unused": "Неиспользуемые файлы",
+    "special_files_on_disk": "Специальные файлы в папке загрузок (не открывались)",
+    "unreadable": "Недоступные файлы и папки",
+}
 
-    base = name.rsplit("/", 1)[-1]
+SUSPICIOUS_REASONS = {
+    "only_extension": "имя состоит только из расширения",
+    "generic_name": "типовое имя (камера, «image», «scan» и т. п.)",
+    "digits_only": "имя только из цифр",
+}
 
-    if "." in base.strip("."):
-        return base.rsplit(".", 1)[-1].lower()
-
-    # secure_filename превращает «снимок.jpg» в «jpg»
-    if base.lower() in KNOWN_EXTENSIONS:
-        return base.lower() + " (имя без основы)"
-
-    return "(нет расширения)"
-
-
-def path_style(raw):
-
-    if "\\" in raw:
-        return "обратные слэши (Windows)"
-
-    if raw.startswith("/") or (len(raw) > 1 and raw[1] == ":"):
-        return "абсолютный путь"
-
-    if raw.startswith("static/uploads/"):
-        return "static/uploads/<имя>"
-
-    return "другой относительный путь"
-
-
-def normalize(raw, project_root):
-
-    value = raw.strip().replace("\\", "/")
-
-    if len(value) > 1 and value[1] == ":":
-        return os.path.normpath(value)
-
-    if value.startswith("/"):
-        return os.path.normpath(value)
-
-    return os.path.normpath(os.path.join(project_root, value))
+TEXT_LIST_LIMIT = 50
 
 
-def sha256_file(path):
-
-    digest = hashlib.sha256()
-
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(chunk)
-
-    return digest.hexdigest()
+class InputError(Exception):
+    pass
 
 
-def read_cases(db_path):
+# ---------- База данных ----------
 
-    uri = "file:" + os.path.abspath(db_path) + "?mode=ro"
+def sqlite_uri(db_path, immutable):
 
-    connection = sqlite3.connect(uri, uri=True)
+    # as_uri кодирует «?», «#», пробелы и Unicode, поэтому параметры
+    # не теряются и SQLite открывает именно этот файл
+    uri = Path(os.path.abspath(db_path)).as_uri() + "?mode=ro"
+
+    if immutable:
+        uri += "&immutable=1"
+
+    return uri
+
+
+def check_database_file(db_path, immutable_copy):
+
+    try:
+        info = os.stat(db_path)
+    except FileNotFoundError:
+        raise InputError(f"База не найдена: {db_path}")
+    except OSError as e:
+        raise InputError(f"Нет доступа к базе {db_path}: {e.strerror}")
+
+    if not stat.S_ISREG(info.st_mode):
+        raise InputError(f"Путь к базе не является обычным файлом: {db_path}")
+
+    if info.st_size == 0:
+        raise InputError(f"База пустая (0 байт): {db_path}")
+
+    try:
+        with open(db_path, "rb") as f:
+            header = f.read(100)
+    except OSError as e:
+        raise InputError(f"Не удалось прочитать базу {db_path}: {e.strerror}")
+
+    if len(header) < 100 or not header.startswith(b"SQLite format 3\x00"):
+        raise InputError(f"Файл не является базой SQLite или повреждён: {db_path}")
+
+    sidecars = [
+        suffix for suffix in ("-wal", "-shm", "-journal")
+        if os.path.lexists(db_path + suffix)
+    ]
+
+    if sidecars:
+        raise InputError(
+            "Рядом с базой есть служебные файлы SQLite ("
+            + ", ".join(sidecars)
+            + "). В них могут быть данные, которых нет в основном файле, "
+            "а открытие такой базы может изменить служебные файлы. "
+            "Сделайте согласованную копию базы (sqlite3 backup API) и "
+            "запустите проверку на копии."
+        )
+
+    # Байты 18 и 19 заголовка: 1 — обычный журнал, 2 — WAL
+    journal = "wal" if header[18] == 2 or header[19] == 2 else "rollback"
+
+    if journal == "wal" and not immutable_copy:
+        raise InputError(
+            "База в режиме WAL. Даже при чтении SQLite создаёт для неё файлы "
+            "-wal и -shm. Сделайте согласованную копию базы и запустите "
+            "проверку на копии с флагом --immutable-copy."
+        )
+
+    return journal
+
+
+def read_cases(db_path, immutable_copy):
+
+    journal = check_database_file(db_path, immutable_copy)
+
+    try:
+        connection = sqlite3.connect(
+            sqlite_uri(db_path, immutable_copy),
+            uri=True,
+            timeout=2
+        )
+    except sqlite3.Error as e:
+        raise InputError(f"Не удалось открыть базу: {e}")
+
+    # Байты, которые нельзя декодировать как UTF-8, не приводят к падению
+    connection.text_factory = lambda b: b.decode("utf-8", "surrogateescape")
+
+    warnings = []
 
     try:
         connection.execute("PRAGMA query_only = ON")
+
+        tables = {
+            row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+
+        if "case" not in tables:
+            raise InputError("В базе нет таблицы \"case\" — это не база Paithology?")
+
+        columns = {
+            row[1] for row in connection.execute('PRAGMA table_info("case")')
+        }
+
+        if not {"id", "user_id", "images"} <= columns:
+            raise InputError(
+                "В таблице \"case\" нет нужных столбцов (id, user_id, images)"
+            )
 
         # Читаются только технические поля, без данных пациента
         rows = connection.execute(
             'SELECT id, user_id, images FROM "case" ORDER BY id'
         ).fetchall()
 
-        user_ids = {
-            row[0] for row in connection.execute("SELECT id FROM user")
-        }
+        user_ids = None
+
+        if "user" in tables:
+            user_ids = {row[0] for row in connection.execute("SELECT id FROM user")}
+        else:
+            warnings.append(
+                "В базе нет таблицы user: удалённых владельцев определить нельзя"
+            )
+
+    except sqlite3.OperationalError as e:
+        if "locked" in str(e) or "busy" in str(e):
+            raise InputError(
+                "База заблокирована другой операцией записи. Повторите позже "
+                "или запустите проверку на копии базы."
+            )
+        raise InputError(f"Ошибка чтения базы: {e}")
+
+    except sqlite3.DatabaseError as e:
+        raise InputError(f"База повреждена или не читается: {e}")
 
     finally:
         connection.close()
 
-    return rows, user_ids
+    return rows, user_ids, journal, warnings
+
+
+# ---------- Файлы ----------
+
+def display_name(path):
+
+    return os.fsencode(path).decode("utf-8", "backslashreplace")
+
+
+def nfc(path):
+
+    return unicodedata.normalize("NFC", path)
+
+
+def is_inside(path, folder):
+
+    return path == folder or path.startswith(folder.rstrip(os.sep) + os.sep)
 
 
 def scan_uploads(uploads_dir):
 
-    case_files = {}
-    other_files = Counter()
-    symlinks = 0
+    regular = {}
+    symlinks = []
+    special = []
+    unreadable = []
+    reserved = Counter()
 
-    for current, dirs, files in os.walk(uploads_dir, followlinks=False):
+    def on_error(error):
+        unreadable.append(error.filename)
+
+    for current, dirs, files in os.walk(uploads_dir, onerror=on_error, followlinks=False):
 
         relative_dir = os.path.relpath(current, uploads_dir)
-
         top = relative_dir.split(os.sep)[0]
+
+        for name in dirs:
+            if os.path.islink(os.path.join(current, name)):
+                symlinks.append(os.path.join(current, name))
 
         for name in files:
 
             full = os.path.join(current, name)
 
-            if os.path.islink(full):
-                symlinks += 1
+            try:
+                info = os.lstat(full)
+            except OSError:
+                unreadable.append(full)
                 continue
 
-            if top in NON_CASE_SUBFOLDERS:
-                other_files[top] += 1
-                continue
+            if stat.S_ISLNK(info.st_mode):
+                symlinks.append(full)
+            elif not stat.S_ISREG(info.st_mode):
+                special.append(full)
+            elif top in RESERVED_SUBFOLDERS:
+                reserved[top] += 1
+            else:
+                regular[full] = info.st_size
 
-            case_files[os.path.realpath(full)] = os.path.getsize(full)
+    return regular, symlinks, special, unreadable, reserved
 
-    return case_files, other_files, symlinks
 
+def sha256_regular_file(path):
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    flags |= getattr(os, "O_BINARY", 0)
+
+    # O_NOFOLLOW не даёт пройти по символической ссылке, O_NONBLOCK не даёт
+    # зависнуть на FIFO; после открытия тип проверяется ещё раз
+    fd = os.open(path, flags)
+
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return None
+
+        digest = hashlib.sha256()
+
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+
+        return digest.hexdigest()
+
+    finally:
+        os.close(fd)
+
+
+def suspicious_reason(path):
+
+    base = path.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1].strip()
+
+    if not base:
+        return None
+
+    stem_and_ext = base.rsplit(".", 1)
+
+    if base.lower() in KNOWN_EXTENSIONS or (
+        len(stem_and_ext) == 2 and stem_and_ext[0] == ""
+    ):
+        return "only_extension"
+
+    if DIGITS_ONLY.match(base):
+        return "digits_only"
+
+    if GENERIC_NAME.match(base):
+        return "generic_name"
+
+    return None
+
+
+def file_extension(path):
+
+    base = path.replace("\\", "/").rsplit("/", 1)[-1]
+
+    if "." in base.strip("."):
+        return display_name(base.rsplit(".", 1)[-1].lower())
+
+    if base.lower() in KNOWN_EXTENSIONS:
+        return base.lower()
+
+    return "(нет)"
+
+
+def classify_reference(raw, project_root, uploads_dir):
+
+    """Возвращает (категория, путь внутри папки загрузок или None)."""
+
+    value = raw.strip()
+
+    if WINDOWS_ABSOLUTE.match(value):
+        return "windows_absolute", None
+
+    if URL_STYLE.match(value):
+        return "url_style", None
+
+    if value.startswith("/"):
+        return "absolute_path", None
+
+    candidate = os.path.normpath(
+        os.path.join(project_root, value.replace("\\", "/"))
+    )
+
+    if candidate == uploads_dir:
+        return "directory", candidate
+
+    if not is_inside(candidate, uploads_dir):
+        return "outside_uploads", None
+
+    top = os.path.relpath(candidate, uploads_dir).split(os.sep)[0]
+
+    # «Файла нет» и «нет доступа к файлу или папке» — разные случаи
+    try:
+        info = os.lstat(candidate)
+    except (FileNotFoundError, NotADirectoryError):
+        return "missing", candidate
+    except OSError:
+        return "unreadable", candidate
+
+    # Символическая ссылка в любом звене пути: не открываем и не считаем безопасной
+    if os.path.realpath(candidate) != candidate:
+        return "symlink", candidate
+
+    if stat.S_ISDIR(info.st_mode):
+        return "directory", candidate
+
+    if not stat.S_ISREG(info.st_mode):
+        return "special", candidate
+
+    if top in RESERVED_SUBFOLDERS:
+        return "reserved_subfolder", candidate
+
+    return "ok", candidate
+
+
+# ---------- Отчёт ----------
 
 def build_report(args):
 
     project_root = os.path.realpath(args.project_root)
     uploads_dir = os.path.realpath(args.uploads)
 
-    rows, user_ids = read_cases(args.db)
+    rows, user_ids, journal, warnings = read_cases(args.db, args.immutable_copy)
 
-    files_on_disk, other_files, symlinks = scan_uploads(uploads_dir)
+    regular, symlinks_on_disk, special_on_disk, unreadable, reserved = scan_uploads(
+        uploads_dir
+    )
 
-    def label(full_path):
+    pseudonyms = {}
 
-        relative = os.path.relpath(full_path, uploads_dir).replace(os.sep, "/")
+    def label(path):
 
-        return relative if args.show_filenames else path_id(relative)
+        if args.show_filenames:
+            return display_name(os.path.relpath(path, uploads_dir))
 
-    references = defaultdict(list)
-    styles = Counter()
+        if path not in pseudonyms:
+            pseudonyms[path] = f"file-{len(pseudonyms) + 1:04d}"
+
+        return pseudonyms[path]
+
+    by_nfc = defaultdict(list)
+
+    for path in regular:
+        by_nfc[nfc(path)].append(path)
+
+    issues = {key: [] for key in ISSUE_TITLES}
+    categories = Counter()
     extensions = Counter()
-    outside = []
-    duplicates_in_case = []
-    cases_without_images = 0
-    cases_without_owner = 0
-    cases_with_missing_owner = 0
+    references = defaultdict(list)
+
+    stats = {
+        "total": len(rows),
+        "with_images": 0,
+        "without_images": 0,
+        "without_owner": 0,
+        "owner_deleted": None if user_ids is None else 0,
+    }
+
     total_refs = 0
 
     for case_id, user_id, images in rows:
 
         if user_id is None:
-            cases_without_owner += 1
-        elif user_id not in user_ids:
-            cases_with_missing_owner += 1
+            stats["without_owner"] += 1
+        elif user_ids is not None and user_id not in user_ids:
+            stats["owner_deleted"] += 1
 
         entries = [e for e in (images or "").split(",") if e.strip()]
 
         if not entries:
-            cases_without_images += 1
+            stats["without_images"] += 1
             continue
+
+        stats["with_images"] += 1
 
         seen = set()
 
         for index, raw in enumerate(entries):
 
             total_refs += 1
-            styles[path_style(raw.strip())] += 1
 
-            full = os.path.realpath(normalize(raw, project_root))
+            category, path = classify_reference(raw, project_root, uploads_dir)
 
-            extensions[file_extension(full.replace(os.sep, "/"))] += 1
+            categories[category] += 1
+            extensions[file_extension(raw.strip())] += 1
 
-            if os.path.commonpath([full, uploads_dir]) != uploads_dir:
-                outside.append({"case_id": case_id, "index": index})
+            entry = {"case_id": case_id, "index": index}
+
+            if path is not None:
+                entry["file"] = label(path)
+
+            reason = suspicious_reason(raw)
+
+            if reason:
+                issues["suspicious_names"].append(
+                    {**entry, "reason": SUSPICIOUS_REASONS[reason]}
+                )
+
+            if "\\" in raw and category not in ("windows_absolute",):
+                issues["windows_separators"].append(entry)
+
+            if category == "ok":
+
+                if path in seen:
+                    issues["duplicated_within_case"].append(entry)
+
+                seen.add(path)
+                references[path].append((case_id, user_id))
                 continue
 
-            if full in seen:
-                duplicates_in_case.append({"case_id": case_id, "index": index})
+            if category == "missing":
 
-            seen.add(full)
+                matches = [p for p in by_nfc.get(nfc(path), []) if p != path]
 
-            references[full].append(
-                {"case_id": case_id, "user_id": user_id, "index": index}
-            )
+                if matches:
+                    issues["unicode_candidates"].append(
+                        {**entry, "possible_match": [label(p) for p in matches]}
+                    )
 
-    missing = []
-    shared = []
+            issues[category].append(entry)
+
     referenced_size = 0
 
-    for full, refs in sorted(references.items()):
+    for path, refs in sorted(references.items(), key=lambda item: label(item[0])):
 
-        if full not in files_on_disk:
-            for ref in refs:
-                missing.append(
-                    {"case_id": ref["case_id"], "index": ref["index"], "file": label(full)}
-                )
-            continue
+        referenced_size += regular.get(path, 0)
 
-        referenced_size += files_on_disk[full]
-
-        case_ids = sorted({r["case_id"] for r in refs})
+        case_ids = sorted({case_id for case_id, _ in refs})
 
         if len(case_ids) > 1:
-            owners = {r["user_id"] for r in refs}
-            shared.append({
-                "file": label(full),
+            issues["shared"].append({
+                "file": label(path),
                 "cases": case_ids,
-                "distinct_owners": len(owners)
+                "distinct_owners": len({owner for _, owner in refs}),
+                # Эвристика: поля времени создания нет, поэтому самой поздней
+                # загрузкой считается исследование с наибольшим id
+                "probable_latest_case_id": max(case_ids),
             })
 
-    unused = [
-        {
-            "file": label(full),
-            "extension": file_extension(full.replace(os.sep, "/")),
-            "size": size
-        }
-        for full, size in sorted(files_on_disk.items())
-        if full not in references
-    ]
+    for path in sorted(regular):
 
-    content_groups = []
+        if path in references:
+            continue
+
+        item = {
+            "file": label(path),
+            "extension": file_extension(path),
+            "size": regular[path],
+        }
+
+        issues["unused"].append(item)
+
+        reason = suspicious_reason(path)
+
+        if reason:
+            issues["suspicious_names"].append(
+                {"case_id": None, "file": item["file"], "reason": SUSPICIOUS_REASONS[reason]}
+            )
+
+    for path in special_on_disk:
+        issues["special_files_on_disk"].append({"file": label(path)})
+
+    for path in unreadable:
+        issues["unreadable"].append({"file": label(path)})
+
+    same_content = []
 
     if args.checksums:
 
         by_hash = defaultdict(list)
 
-        for full in files_on_disk:
-            by_hash[sha256_file(full)].append(label(full))
+        for path in sorted(regular):
+            try:
+                digest = sha256_regular_file(path)
+            except OSError:
+                issues["unreadable"].append({"file": label(path)})
+                continue
 
-        content_groups = [
-            sorted(names) for names in by_hash.values() if len(names) > 1
-        ]
+            if digest is None:
+                issues["special_files_on_disk"].append({"file": label(path)})
+                continue
+
+            by_hash[digest].append(label(path))
+
+        same_content = [sorted(names) for names in by_hash.values() if len(names) > 1]
+
+    problems_vs_total = sum(
+        categories[c] for c in categories if c not in ("ok",)
+    )
+
+    if total_refs and problems_vs_total * 2 >= total_refs:
+        warnings.append(
+            "Больше половины ссылок не найдено или указывает за пределы папки "
+            "загрузок. Проверьте --project-root и --uploads: пути в базе "
+            "записаны относительно папки, из которой запускалось приложение."
+        )
+
+    issue_count = sum(len(items) for items in issues.values())
 
     return {
-        "cases": {
-            "total": len(rows),
-            "with_images": len(rows) - cases_without_images,
-            "without_images": cases_without_images,
-            "without_owner": cases_without_owner,
-            "owner_deleted": cases_with_missing_owner,
+        "report_version": 2,
+        "pseudonyms": (
+            "Реальные имена файлов" if args.show_filenames else
+            "file-NNNN: номера действуют только внутри этого отчёта"
+        ),
+        "database": {
+            "journal_mode": journal,
+            "opened_as": "immutable-copy" if args.immutable_copy else "read-only",
         },
+        "cases": stats,
         "references": {
             "total": total_refs,
             "unique_files": len(references),
-            "path_styles": dict(styles),
+            "by_category": dict(categories),
             "extensions": dict(extensions),
             "not_browser_renderable": sum(
-                count for ext, count in extensions.items()
-                if ext.split(" ")[0] not in BROWSER_RENDERABLE
+                n for ext, n in extensions.items() if ext not in BROWSER_RENDERABLE
             ),
-            "outside_uploads": outside,
-            "duplicated_within_case": duplicates_in_case,
         },
         "files": {
-            "case_files_on_disk": len(files_on_disk),
+            "regular": len(regular),
             "referenced_size_bytes": referenced_size,
-            "other_subfolders": dict(other_files),
-            "symlinks_skipped": symlinks,
+            "symlinks": len(symlinks_on_disk),
+            "special": len(special_on_disk),
+            "reserved_subfolders": dict(reserved),
         },
-        "missing": missing,
-        "shared": shared,
-        "shared_between_owners": sum(1 for s in shared if s["distinct_owners"] > 1),
-        "unused": unused,
-        "unused_size_bytes": sum(u["size"] for u in unused),
-        "same_content_groups": content_groups,
-        "filenames_hidden": not args.show_filenames,
+        "issues": issues,
+        "same_content_groups": same_content,
+        "issue_count": issue_count,
+        "warnings": warnings,
     }
 
 
@@ -309,74 +631,158 @@ def print_text(report):
     r = report["references"]
     f = report["files"]
 
+    print(f"База: журнал {report['database']['journal_mode']}, "
+          f"открыта как {report['database']['opened_as']}")
     print("Исследования")
     print(f"  всего: {c['total']}, со снимками: {c['with_images']}, "
           f"без снимков: {c['without_images']}")
-    print(f"  без владельца: {c['without_owner']}, владелец удалён: {c['owner_deleted']}")
-
+    print(f"  без владельца: {c['without_owner']}, владелец удалён: "
+          f"{'неизвестно' if c['owner_deleted'] is None else c['owner_deleted']}")
     print("Ссылки на снимки (Case.images)")
-    print(f"  всего ссылок: {r['total']}, уникальных файлов: {r['unique_files']}")
-    print(f"  форматы путей: {r['path_styles']}")
+    print(f"  всего: {r['total']}, уникальных найденных файлов: {r['unique_files']}")
+    print(f"  по категориям: {r['by_category']}")
     print(f"  расширения: {r['extensions']}")
     print(f"  браузер не покажет в <img> (TIFF/SVS/NDPI и др.): {r['not_browser_renderable']}")
-    print(f"  ссылки за пределами папки загрузок: {len(r['outside_uploads'])}")
-    print(f"  повтор одного файла внутри исследования: {len(r['duplicated_within_case'])}")
+    print("Папка загрузок")
+    print(f"  обычных файлов снимков: {f['regular']}, объём найденных: "
+          f"{f['referenced_size_bytes']} байт")
+    print(f"  символических ссылок: {f['symlinks']}, специальных файлов: {f['special']}")
+    print(f"  в служебных подпапках (не снимки): {f['reserved_subfolders']}")
 
-    print("Файлы в папке загрузок")
-    print(f"  файлов снимков: {f['case_files_on_disk']}, "
-          f"объём используемых: {f['referenced_size_bytes']} байт")
-    print(f"  в служебных подпапках (не снимки): {f['other_subfolders']}")
-    print(f"  пропущено символических ссылок: {f['symlinks_skipped']}")
+    for key, title in ISSUE_TITLES.items():
 
-    print(f"Отсутствующие файлы: {len(report['missing'])}")
-    for item in report["missing"]:
-        print(f"  case_id={item['case_id']} снимок №{item['index']} файл={item['file']}")
+        items = report["issues"][key]
 
-    print(f"Файлы, общие для нескольких исследований: {len(report['shared'])} "
-          f"(из них у разных пользователей: {report['shared_between_owners']})")
-    for item in report["shared"]:
-        print(f"  файл={item['file']} case_id={item['cases']} "
-              f"владельцев={item['distinct_owners']}")
+        if not items:
+            continue
 
-    print(f"Неиспользуемые файлы: {len(report['unused'])}, "
-          f"объём: {report['unused_size_bytes']} байт")
-    for item in report["unused"]:
-        print(f"  файл={item['file']} расширение={item['extension']} размер={item['size']}")
+        print(f"{title}: {len(items)}")
+
+        for item in items[:TEXT_LIST_LIMIT]:
+            print("  " + ", ".join(f"{k}={v}" for k, v in item.items()))
+
+        if len(items) > TEXT_LIST_LIMIT:
+            print(f"  … и ещё {len(items) - TEXT_LIST_LIMIT} (полный список: --json)")
 
     if report["same_content_groups"]:
         print(f"Группы файлов с одинаковым содержимым: {len(report['same_content_groups'])}")
-        for group in report["same_content_groups"]:
+        for group in report["same_content_groups"][:TEXT_LIST_LIMIT]:
             print(f"  {group}")
 
-    if report["filenames_hidden"]:
-        print("Имена файлов скрыты (показаны первые 12 символов SHA-256 пути).")
+    print(f"Всего проблем: {report['issue_count']}")
+    print(f"Обозначения файлов: {report['pseudonyms']}")
 
 
-def main():
+def parse_args(argv):
 
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--db", default=os.path.join("instance", "paithology.db"))
-    parser.add_argument("--uploads", default=os.path.join("static", "uploads"))
-    parser.add_argument("--project-root", default=".")
-    parser.add_argument("--checksums", action="store_true")
-    parser.add_argument("--json", action="store_true")
-    parser.add_argument("--show-filenames", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="Инвентаризация снимков исследований Paithology (только чтение).",
+        epilog="Коды завершения: 0 — проверка выполнена; 1 — найдены проблемы "
+               "(только с --fail-on-issues); 2 — ошибка входных данных."
+    )
+    parser.add_argument(
+        "--project-root",
+        help="папка, относительно которой записаны пути в Case.images "
+             "(обычно корень проекта, откуда запускается app.py). Обязательна, "
+             "если в текущей папке нет app.py"
+    )
+    parser.add_argument(
+        "--db",
+        help="путь к копии базы SQLite (по умолчанию <project-root>/instance/paithology.db)"
+    )
+    parser.add_argument(
+        "--uploads",
+        help="папка загрузок (по умолчанию <project-root>/static/uploads)"
+    )
+    parser.add_argument(
+        "--checksums",
+        action="store_true",
+        help="посчитать SHA-256 обычных файлов, чтобы найти одинаковые по "
+             "содержимому (символические ссылки и специальные файлы не открываются)"
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="вывести отчёт в JSON"
+    )
+    parser.add_argument(
+        "--fail-on-issues",
+        action="store_true",
+        help="вернуть код 1, если найдена хотя бы одна проблема"
+    )
+    parser.add_argument(
+        "--immutable-copy",
+        action="store_true",
+        help="открыть базу с immutable=1. Только для КОПИИ базы, которую никто "
+             "не изменяет во время проверки: SQLite не ставит блокировки и не "
+             "замечает изменений файла. Нужен для копий в режиме WAL; при наличии "
+             "файлов -wal/-shm/-journal проверка всё равно не запускается"
+    )
+    parser.add_argument(
+        "--show-filenames",
+        action="store_true",
+        help="показать реальные имена файлов вместо псевдонимов. Имена могут "
+             "содержать персональные данные — не передавайте такой отчёт"
+    )
 
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
-    for path, kind in ((args.db, "база"), (args.uploads, "папка загрузок")):
-        if not os.path.exists(path):
-            print(f"Не найдена {kind}: {path}", file=sys.stderr)
-            return 1
 
-    report = build_report(args)
+def main(argv=None):
+
+    args = parse_args(argv)
+
+    if args.project_root is None:
+
+        if not os.path.isfile("app.py"):
+            print(
+                "Ошибка: текущая папка не похожа на корень проекта (нет app.py). "
+                "Укажите --project-root — папку, из которой запускается "
+                "приложение, иначе пути из базы будут проверены неверно.",
+                file=sys.stderr
+            )
+            return EXIT_INPUT_ERROR
+
+        args.project_root = "."
+
+    if not os.path.isdir(args.project_root):
+        print(f"Ошибка: --project-root не является папкой: {args.project_root}",
+              file=sys.stderr)
+        return EXIT_INPUT_ERROR
+
+    args.db = args.db or os.path.join(args.project_root, "instance", "paithology.db")
+    args.uploads = args.uploads or os.path.join(args.project_root, "static", "uploads")
+
+    if not os.path.isdir(args.uploads):
+        kind = "не найдена" if not os.path.lexists(args.uploads) else "не является папкой"
+        print(f"Ошибка: папка загрузок {kind}: {args.uploads}", file=sys.stderr)
+        return EXIT_INPUT_ERROR
+
+    if not os.access(args.uploads, os.R_OK | os.X_OK):
+        print(f"Ошибка: нет доступа к папке загрузок: {args.uploads}", file=sys.stderr)
+        return EXIT_INPUT_ERROR
+
+    if args.show_filenames:
+        print("Внимание: в отчёте будут реальные имена файлов.", file=sys.stderr)
+
+    try:
+        report = build_report(args)
+    except InputError as e:
+        print(f"Ошибка: {e}", file=sys.stderr)
+        return EXIT_INPUT_ERROR
+
+    for warning in report["warnings"]:
+        print(f"Предупреждение: {warning}", file=sys.stderr)
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
         print_text(report)
 
-    return 0
+    if args.fail_on_issues and report["issue_count"]:
+        return EXIT_ISSUES
+
+    return EXIT_OK
 
 
 if __name__ == "__main__":
