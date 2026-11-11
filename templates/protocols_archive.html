@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Архив протоколов — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol">
+
+    <h1 class="page-title">Архив протоколов</h1>
+
+    <p class="page-subtitle">Созданные патогистологические заключения</p>
+
+    <div class="glass-card">
+
+        <div class="search-strip">
+            <input type="text" placeholder="№ исследования" disabled>
+            <input type="text" placeholder="ФИО пациента" disabled>
+            <input type="text" placeholder="Заключение" disabled>
+            <input type="text" placeholder="Дата поступления" disabled>
+            <button type="button" class="btn btn-primary" disabled>Поиск</button>
+        </div>
+
+    </div>
+
+    <div class="glass-card">
+
+        <div class="archive-columns">
+            <span>№ исследования</span>
+            <span>Пациент</span>
+            <span>Вид материала</span>
+            <span>Заключение</span>
+            <span>Изменён</span>
+        </div>
+
+        <div class="empty-state">
+
+            <i class="bi bi-archive"></i>
+
+            <h2>Архив пока пуст</h2>
+
+            <p>
+                Здесь будут храниться созданные протоколы: открыть, отредактировать,
+                повторно скачать DOCX или PDF и посмотреть историю изменений.
+                Сохранение включится после подключения постоянного хранилища.
+                Сейчас протоколы на сервере не сохраняются и скачиваются сразу.
+            </p>
+
+            <a class="btn btn-primary" href="{{ url_for('protocol_choose') }}">
+                <i class="bi bi-plus-lg"></i> Создать протокол
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

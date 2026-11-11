@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Настройки — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol">
+
+    <h1 class="page-title">Настройки</h1>
+
+    <p class="page-subtitle">Шапка лаборатории для патогистологических протоколов</p>
+
+    <div class="glass-card">
+
+        <div class="card-heading">
+            <h2><i class="bi bi-building"></i> Шапка документа</h2>
+        </div>
+
+        <label class="field-label" for="h-logo">Логотип лаборатории (PNG или JPG)</label>
+        <div class="logo-row">
+            <div class="logo-preview" id="logo-preview"><span style="color:#555">Нет логотипа</span></div>
+            <div>
+                <input type="file" id="h-logo" accept="image/png,image/jpeg" style="height:auto;padding:12px">
+                <button type="button" class="btn btn-ghost btn-small" id="logo-remove" style="margin-top:10px">
+                    <i class="bi bi-trash"></i> Убрать логотип
+                </button>
+            </div>
+        </div>
+
+        <label class="field-label" for="h-address">Адрес (справа от логотипа на каждой странице)</label>
+        <textarea id="h-address" style="min-height:90px"
+                  placeholder="Адрес: г. …, ул. …, дом …&#10;Ориентир: …"></textarea>
+
+        <label class="field-label" for="h-org">Блок организации (слева на первой странице)</label>
+        <textarea id="h-org"
+                  placeholder="Министерство Здравоохранения …&#10;ООО «…»&#10;Лицензия № … от …&#10;Договор об оказании лабораторных услуг от …"></textarea>
+
+        <label class="field-label" for="h-form">Форма документа (справа на первой странице)</label>
+        <textarea id="h-form" style="min-height:90px"
+                  placeholder="Форма медицинского документа № 014,&#10;утвержденная приказом …"></textarea>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="h-clear">
+                <i class="bi bi-eraser"></i> Очистить
+            </button>
+            <div class="right">
+                <button type="button" class="btn btn-primary" id="h-save">
+                    <i class="bi bi-check-lg"></i> Сохранить
+                </button>
+            </div>
+        </div>
+
+        <div class="status-line" id="h-status"></div>
+
+    </div>
+
+    <div class="info-banner">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            Пока настройки хранятся только в этом браузере на этом устройстве и на сервер не
+            отправляются, кроме момента скачивания протокола. После подключения постоянного
+            хранилища они будут сохраняться в профиле лаборатории.
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function () {
+
+    const KEY = "paithology.labHeader";
+    const fields = { org: "h-org", form: "h-form", address: "h-address" };
+    const preview = document.getElementById("logo-preview");
+    const status = document.getElementById("h-status");
+    let logo = "";
+
+    function showLogo() {
+        preview.innerHTML = logo ? `<img src="${logo}" alt="Логотип">` : '<span style="color:#555">Нет логотипа</span>';
+    }
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+        Object.entries(fields).forEach(([key, id]) => { document.getElementById(id).value = saved[key] || ""; });
+        logo = saved.logo || "";
+    } catch (e) {}
+
+    showLogo();
+
+    // Логотип уменьшается до 600 px, чтобы поместиться в хранилище браузера
+    document.getElementById("h-logo").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(600 / img.naturalWidth, 600 / img.naturalHeight, 1);
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.naturalWidth * scale);
+            canvas.height = Math.round(img.naturalHeight * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            logo = canvas.toDataURL("image/png");
+            URL.revokeObjectURL(img.src);
+            showLogo();
+            status.className = "status-line";
+            status.textContent = "Логотип выбран. Нажмите «Сохранить».";
+        };
+        img.onerror = () => {
+            status.className = "status-line error";
+            status.textContent = "Не удалось открыть изображение.";
+        };
+        img.src = URL.createObjectURL(file);
+    });
+
+    document.getElementById("logo-remove").addEventListener("click", () => { logo = ""; showLogo(); });
+
+    document.getElementById("h-save").addEventListener("click", () => {
+        const data = { logo };
+        Object.entries(fields).forEach(([key, id]) => { data[key] = document.getElementById(id).value.trim(); });
+        try {
+            localStorage.setItem(KEY, JSON.stringify(data));
+            status.className = "status-line";
+            status.textContent = "Сохранено в этом браузере.";
+        } catch (e) {
+            status.className = "status-line error";
+            status.textContent = "Не удалось сохранить: возможно, логотип слишком большой или хранилище браузера отключено.";
+        }
+    });
+
+    document.getElementById("h-clear").addEventListener("click", () => {
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        Object.values(fields).forEach((id) => { document.getElementById(id).value = ""; });
+        logo = "";
+        showLogo();
+        status.className = "status-line";
+        status.textContent = "Настройки очищены.";
+    });
+
+})();
+</script>
+
+</body>
+</html>

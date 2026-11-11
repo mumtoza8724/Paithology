@@ -8,7 +8,8 @@ from flask import (
     send_file,
     send_from_directory,
     abort,
-    g
+    g,
+    jsonify
 )
 from model import analyze
 from database import (
@@ -19,6 +20,7 @@ from database import (
 )
 from doc_generator import create_doc
 from qr_generator import create_qr
+import protocols
 from datetime import datetime
 
 import os
@@ -1110,6 +1112,154 @@ def reject_consultant(id):
     db.session.commit()
 
     return redirect(url_for("admin_consultants"))
+
+# ---------- Патогистологические протоколы ----------
+
+PROTOCOL_TITLES = {
+    "small": "Малый биопсийный материал",
+    "large": "Большой операционный материал",
+}
+
+
+@app.route("/protocols/new")
+@login_required
+def protocol_choose():
+
+    return render_template("protocol_choose.html", current_user=g.user)
+
+
+@app.route("/protocols/new/<kind>")
+@login_required
+def protocol_form(kind):
+
+    if kind not in protocols.KINDS:
+        abort(404)
+
+    return render_template(
+        "protocol_form.html",
+        kind=kind,
+        title=PROTOCOL_TITLES[kind],
+        current_user=g.user,
+        stains=list(protocols.STAIN_METHODS),
+        colors=list(protocols.COLORS),
+        consistencies=list(protocols.CONSISTENCIES),
+        work_taken=list(protocols.WORK_TAKEN),
+        archive=list(protocols.ARCHIVE),
+        source_langs=protocols.SOURCE_LANGS,
+        target_langs=protocols.TARGET_LANGS,
+        diagnoses=protocols.DIAGNOSES,
+        note=protocols.NOTE_RU,
+    )
+
+
+def json_text(payload, name, limit=protocols.MAX_TEXT):
+
+    value = payload.get(name, "")
+
+    return value[:limit] if isinstance(value, str) else ""
+
+
+@app.route("/protocols/generate/macro", methods=["POST"])
+@login_required
+def protocol_generate_macro():
+
+    payload = request.get_json(silent=True) or {}
+
+    lang = json_text(payload, "doc_lang")
+    lang = lang if lang in protocols.DOC_LANGS else "ru"
+
+    if payload.get("kind") == "small":
+
+        text, notice = protocols.generate_macro_small(
+            json_text(payload, "size", 200),
+            json_text(payload, "color", 100),
+            json_text(payload, "consistency", 100),
+            json_text(payload, "work", 50),
+            json_text(payload, "archive", 50),
+            lang,
+        )
+
+        return jsonify(text=text, marking="", notice=notice)
+
+    if payload.get("kind") == "large":
+
+        source = json_text(payload, "source_lang")
+        source = source if source in protocols.SOURCE_LANGS else "ru"
+
+        text, marking, notice = protocols.generate_macro_large(
+            json_text(payload, "notes"),
+            json_text(payload, "marking_notes"),
+            source,
+            lang,
+        )
+
+        return jsonify(text=text, marking=marking, notice=notice)
+
+    return jsonify(error="Неизвестный тип протокола"), 400
+
+
+@app.route("/protocols/generate/micro", methods=["POST"])
+@login_required
+def protocol_generate_micro():
+
+    payload = request.get_json(silent=True) or {}
+
+    lang = json_text(payload, "doc_lang")
+    lang = lang if lang in protocols.DOC_LANGS else "ru"
+
+    micro, icdo, notice = protocols.generate_micro(
+        json_text(payload, "diagnosis", 300), lang
+    )
+
+    return jsonify(micro=micro, icdo=icdo, notice=notice)
+
+
+@app.route("/protocols/download", methods=["POST"])
+@login_required
+def protocol_download():
+
+    output = request.form.get("format")
+
+    if output not in ("docx", "pdf"):
+        return jsonify(error="Неизвестный формат файла"), 400
+
+    try:
+        data = protocols.parse_form(request.form, request.files)
+    except protocols.ProtocolError as e:
+        return jsonify(error=str(e)), 400
+
+    # Документ собирается в памяти и не сохраняется на сервере
+    if output == "docx":
+        content = protocols.build_docx(data)
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        content = protocols.build_pdf(data)
+        mimetype = "application/pdf"
+
+    response = send_file(
+        io.BytesIO(content),
+        as_attachment=True,
+        download_name=protocols.file_name(data, output),
+        mimetype=mimetype
+    )
+
+    response.headers["Cache-Control"] = "no-store"
+
+    return response
+
+
+@app.route("/protocols/archive")
+@login_required
+def protocols_archive():
+
+    return render_template("protocols_archive.html", current_user=g.user)
+
+
+@app.route("/settings")
+@login_required
+def settings():
+
+    return render_template("settings.html", current_user=g.user)
 
 @app.cli.command("create-admin")
 @click.argument("username")

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Создать протокол — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main">
+
+    <h1 class="page-title">Создать протокол</h1>
+
+    <p class="page-subtitle">
+        Патогистологическое заключение в формате DOCX или PDF. Выберите вид материала
+    </p>
+
+    <div class="choice-grid">
+
+        <a class="choice-card" href="{{ url_for('protocol_form', kind='small') }}">
+
+            <div class="choice-icon"><i class="bi bi-eyedropper"></i></div>
+
+            <div class="choice-number">Вариант 1</div>
+
+            <h2>Малый биопсийный материал</h2>
+
+            <p>Протокол для биопсии: короткое макроописание по размеру, цвету и консистенции.</p>
+
+            <ul>
+                <li>Данные исследования и пациента</li>
+                <li>Макроописание собирается автоматически</li>
+                <li>Таблица «описание — микроскопическая картина»</li>
+                <li>Заключение с кодом МКБ-О</li>
+            </ul>
+
+            <span class="choice-go">Создать <i class="bi bi-arrow-right"></i></span>
+
+        </a>
+
+        <a class="choice-card" href="{{ url_for('protocol_form', kind='large') }}">
+
+            <div class="choice-icon"><i class="bi bi-scissors"></i></div>
+
+            <div class="choice-number">Вариант 2</div>
+
+            <h2>Большой операционный материал</h2>
+
+            <p>Протокол для операционного материала: макроописание по наброскам и маркировка объектов.</p>
+
+            <ul>
+                <li>Выбор языка набросков и языка документа</li>
+                <li>Макроописание и маркировка из наброска</li>
+                <li>Фото макропрепарата с поворотом и обрезкой</li>
+                <li>Несколько заключений с микроописаниями</li>
+            </ul>
+
+            <span class="choice-go">Создать <i class="bi bi-arrow-right"></i></span>
+
+        </a>
+
+    </div>
+
+    <div class="info-banner">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            Протоколы пока не сохраняются на сервере: документ собирается и скачивается сразу.
+            Архив с редактированием и историей изменений включится после подключения
+            постоянного хранилища.
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

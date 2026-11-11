@@ -1,0 +1,660 @@
+/* Страницы протоколов: дополняют style.css в том же стиле */
+
+.page-actions{
+    margin:-20px 0 30px;
+}
+
+.link-back{
+    color:#cfcfff;
+    text-decoration:none;
+    font-size:15px;
+}
+
+.link-back:hover{
+    color:white;
+}
+
+/* ---------- Выбор типа протокола ---------- */
+
+.choice-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+}
+
+.choice-card{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    padding:36px;
+    border-radius:24px;
+    text-decoration:none;
+    color:white;
+    background:rgba(10, 10, 35, .72);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(139, 92, 246, .3);
+    transition:.25s;
+}
+
+.choice-card:hover{
+    transform:translateY(-4px);
+    border-color:#a855f7;
+    box-shadow:0 0 30px rgba(168, 85, 247, .35);
+}
+
+.choice-icon{
+    width:72px;
+    height:72px;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:34px;
+    color:#d8b4fe;
+    background:rgba(124, 77, 255, .18);
+}
+
+.choice-number{
+    color:#b388ff;
+    font-size:14px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+
+.choice-card h2{
+    margin:0;
+    font-size:28px;
+}
+
+.choice-card p{
+    margin:0;
+    color:#cfcfff;
+    line-height:1.5;
+}
+
+.choice-card ul{
+    margin:0;
+    padding-left:20px;
+    color:#d9d9f5;
+    line-height:1.7;
+}
+
+.choice-go{
+    margin-top:auto;
+    align-self:flex-start;
+    padding:14px 26px;
+    border-radius:14px;
+    font-weight:600;
+    background:linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+.info-banner{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    margin-top:28px;
+    padding:18px 22px;
+    border-radius:18px;
+    color:#d9d9f5;
+    line-height:1.5;
+    background:rgba(124, 77, 255, .12);
+    border:1px solid rgba(139, 92, 246, .3);
+}
+
+.info-banner i{
+    color:#b388ff;
+    font-size:22px;
+}
+
+/* ---------- Шаги ---------- */
+
+.stepper{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:28px;
+}
+
+.step-pill{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 20px;
+    border-radius:16px;
+    color:#b8b9d8;
+    background:rgba(10, 10, 35, .6);
+    border:1px solid rgba(139, 92, 246, .2);
+}
+
+.step-pill b{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(124, 77, 255, .2);
+}
+
+.step-pill.active{
+    color:white;
+    border-color:#a855f7;
+}
+
+.step-pill.active b{
+    background:linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+.step-line{
+    flex:0 0 40px;
+    height:2px;
+    background:rgba(139, 92, 246, .35);
+}
+
+.step[hidden]{
+    display:none;
+}
+
+/* ---------- Карточки формы ---------- */
+
+.glass-card + .glass-card{
+    margin-top:26px;
+}
+
+.card-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin:0 0 22px;
+}
+
+.card-heading h2{
+    margin:0;
+    font-size:24px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.card-heading h2 i{
+    color:#b388ff;
+}
+
+.field-label{
+    display:block;
+    margin:18px 0 8px;
+    color:#cfcfff;
+    font-size:14px;
+}
+
+.protocol textarea{
+    height:auto;
+    min-height:130px;
+    padding:14px 18px;
+    line-height:1.55;
+    resize:vertical;
+    font-family:inherit;
+}
+
+.protocol select{
+    appearance:none;
+    cursor:pointer;
+}
+
+.protocol select option{
+    background:#151530;
+    color:white;
+}
+
+/* Глобальные поля в style.css без border-box: внутри карточек они вылезали бы за край */
+.protocol input,
+.protocol select,
+.protocol textarea{
+    box-sizing:border-box;
+}
+
+.protocol .gender-option input{
+    width:auto;
+}
+
+.btn[hidden]{
+    display:none;
+}
+
+.protocol .full{
+    grid-column:1 / -1;
+}
+
+.hint{
+    margin-top:8px;
+    color:#a5a6c9;
+    font-size:13px;
+    line-height:1.45;
+}
+
+.notice{
+    margin-top:12px;
+    padding:12px 16px;
+    border-radius:14px;
+    font-size:14px;
+    line-height:1.5;
+    color:#fde68a;
+    background:rgba(234, 179, 8, .1);
+    border:1px solid rgba(234, 179, 8, .3);
+}
+
+.notice:empty{
+    display:none;
+}
+
+.btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    height:52px;
+    padding:0 24px;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    color:white;
+    font-size:16px;
+    font-weight:600;
+    font-family:inherit;
+    text-decoration:none;
+    transition:.2s;
+}
+
+.btn-primary{
+    background:linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+.btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 24px #b784ff;
+}
+
+.btn-ghost{
+    background:rgba(255, 255, 255, .06);
+    border:1px solid rgba(139, 92, 246, .35);
+}
+
+.btn-ghost:hover{
+    border-color:#a855f7;
+}
+
+.btn-generate{
+    margin-top:18px;
+    background:rgba(124, 77, 255, .22);
+    border:1px solid rgba(168, 85, 247, .6);
+}
+
+.btn-generate:hover{
+    background:rgba(124, 77, 255, .35);
+}
+
+.btn[disabled]{
+    opacity:.6;
+    cursor:wait;
+    transform:none;
+}
+
+.btn-small{
+    height:40px;
+    padding:0 16px;
+    font-size:14px;
+}
+
+.btn-danger{
+    background:rgba(239, 68, 68, .15);
+    border:1px solid rgba(239, 68, 68, .45);
+}
+
+.form-actions{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:16px;
+    margin-top:28px;
+}
+
+.form-actions .right{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+}
+
+.status-line{
+    margin-top:16px;
+    min-height:22px;
+    color:#cfcfff;
+}
+
+.status-line.error{
+    color:#fca5a5;
+}
+
+/* ---------- Шаг 2 ---------- */
+
+.patient-summary{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr;
+    gap:16px;
+}
+
+.summary-tile{
+    padding:16px 20px;
+    border-radius:16px;
+    background:rgba(255, 255, 255, .04);
+    border:1px solid rgba(139, 92, 246, .2);
+}
+
+.summary-tile span{
+    display:block;
+    color:#a5a6c9;
+    font-size:13px;
+    margin-bottom:6px;
+}
+
+.summary-tile b{
+    font-size:18px;
+}
+
+.conclusion-card{
+    padding:24px;
+    border-radius:20px;
+    background:rgba(255, 255, 255, .03);
+    border:1px solid rgba(139, 92, 246, .25);
+}
+
+.conclusion-card + .conclusion-card{
+    margin-top:20px;
+}
+
+.conclusion-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+}
+
+.conclusion-head h3{
+    margin:0;
+    font-size:19px;
+}
+
+.conclusion-body{
+    display:grid;
+    grid-template-columns:1fr 280px;
+    gap:24px;
+}
+
+.icdo-row{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:16px;
+    align-items:end;
+}
+
+.add-conclusion{
+    width:100%;
+    margin-top:20px;
+    height:64px;
+    border:2px dashed rgba(139, 92, 246, .45);
+    background:transparent;
+}
+
+.add-conclusion:hover{
+    border-color:#a855f7;
+    background:rgba(124, 77, 255, .08);
+}
+
+/* ---------- Фото ---------- */
+
+.photo-slot{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.photo-drop{
+    height:200px;
+    border-radius:18px;
+    border:2px dashed rgba(139, 92, 246, .45);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    color:#cfcfff;
+    cursor:pointer;
+    text-align:center;
+    padding:12px;
+    background:rgba(124, 77, 255, .06);
+    overflow:hidden;
+}
+
+.photo-drop:hover{
+    border-color:#a855f7;
+}
+
+.photo-drop i{
+    font-size:30px;
+    color:#b388ff;
+}
+
+.photo-drop img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:10px;
+}
+
+.photo-slot input[type=file]{
+    display:none;
+}
+
+.photo-buttons{
+    display:flex;
+    gap:10px;
+}
+
+.photo-buttons[hidden]{
+    display:none;
+}
+
+.macro-photo .photo-drop{
+    height:260px;
+    max-width:520px;
+}
+
+.note-preview{
+    padding:16px 20px;
+    border-radius:16px;
+    font-size:13px;
+    line-height:1.5;
+    color:#b8b9d8;
+    background:rgba(255, 255, 255, .03);
+    border:1px solid rgba(139, 92, 246, .15);
+}
+
+.header-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 14px;
+    border-radius:12px;
+    font-size:14px;
+    color:#cfcfff;
+    background:rgba(255, 255, 255, .05);
+    border:1px solid rgba(139, 92, 246, .25);
+    text-decoration:none;
+}
+
+.header-chip.ok i{
+    color:#86efac;
+}
+
+.header-chip.missing i{
+    color:#fde68a;
+}
+
+/* ---------- Редактор фото ---------- */
+
+.editor-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(5, 5, 20, .82);
+    backdrop-filter:blur(6px);
+}
+
+.editor-backdrop[hidden]{
+    display:none;
+}
+
+.editor{
+    width:min(960px, 100%);
+    max-height:100%;
+    overflow:auto;
+    padding:26px;
+    border-radius:24px;
+    background:#0f0f2a;
+    border:1px solid rgba(139, 92, 246, .4);
+}
+
+.editor h3{
+    margin:0 0 6px;
+    font-size:22px;
+}
+
+.editor p{
+    margin:0 0 16px;
+    color:#a5a6c9;
+    font-size:14px;
+}
+
+.editor-stage{
+    display:flex;
+    justify-content:center;
+    padding:12px;
+    border-radius:16px;
+    background:rgba(255, 255, 255, .04);
+}
+
+.editor-stage canvas{
+    max-width:100%;
+    touch-action:none;
+    cursor:crosshair;
+}
+
+.editor-tools{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:18px;
+}
+
+.editor-tools div{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+/* ---------- Архив и настройки ---------- */
+
+.search-strip{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr) 160px;
+    gap:14px;
+}
+
+.search-strip input,
+.search-strip button{
+    height:50px;
+}
+
+.empty-state{
+    text-align:center;
+    padding:50px 20px 30px;
+}
+
+.empty-state i{
+    font-size:56px;
+    color:#b388ff;
+}
+
+.empty-state h2{
+    margin:18px 0 10px;
+}
+
+.empty-state p{
+    max-width:640px;
+    margin:0 auto 26px;
+    color:#cfcfff;
+    line-height:1.6;
+}
+
+.archive-columns{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:12px;
+    padding:14px 18px;
+    border-radius:14px;
+    color:#a5a6c9;
+    font-size:14px;
+    background:rgba(255, 255, 255, .03);
+}
+
+.logo-preview{
+    width:220px;
+    height:110px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255, 255, 255, .92);
+    overflow:hidden;
+}
+
+.logo-preview img{
+    max-width:100%;
+    max-height:100%;
+}
+
+.logo-row{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+}
+
+@media(max-width:900px){
+
+    .choice-grid,
+    .conclusion-body,
+    .patient-summary,
+    .icdo-row,
+    .search-strip,
+    .archive-columns{
+        grid-template-columns:1fr;
+    }
+
+    .page-title{
+        font-size:34px;
+    }
+
+    .stepper{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .step-line{
+        display:none;
+    }
+}

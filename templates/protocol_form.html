@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ title }} — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol"
+     id="protocol-page"
+     data-kind="{{ kind }}"
+     data-csrf="{{ csrf_token() }}"
+     data-macro-url="{{ url_for('protocol_generate_macro') }}"
+     data-micro-url="{{ url_for('protocol_generate_micro') }}"
+     data-download-url="{{ url_for('protocol_download') }}">
+
+    <h1 class="page-title">{{ title }}</h1>
+
+    <p class="page-subtitle">Патогистологическое заключение · DOCX или PDF</p>
+
+    <div class="page-actions">
+        <a class="link-back" href="{{ url_for('protocol_choose') }}">
+            <i class="bi bi-arrow-left"></i> Выбрать другой вид материала
+        </a>
+    </div>
+
+    <div class="stepper">
+        <div class="step-pill active" data-pill="1"><b>1</b> Данные и макроскопия</div>
+        <div class="step-line"></div>
+        <div class="step-pill" data-pill="2"><b>2</b> Микроскопия и заключение</div>
+    </div>
+
+<form id="protocol-form" enctype="multipart/form-data" novalidate>
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="kind" value="{{ kind }}">
+
+<!-- ================= ШАГ 1 ================= -->
+
+<section class="step" data-step="1">
+
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-file-earmark-medical"></i> Данные исследования</h2>
+    </div>
+
+    <div class="form-grid">
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-hash"></i></span>
+            <input type="text" name="research_number" placeholder="№ исследования (например, 2604 р (1-7)/26)" required>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-calendar-event"></i></span>
+            <input type="text" name="admission_date" placeholder="Дата поступления материала" onfocus="this.type='date'">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-hospital"></i></span>
+            <input type="text" name="medical_center" placeholder="Направившее медицинское учреждение">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-person"></i></span>
+            <input type="text" name="patient_name" placeholder="ФИО пациента" required>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-gender-ambiguous"></i></span>
+            <div class="gender-box">
+                <label class="gender-option">
+                    <input type="radio" name="gender" value="Мужской"> Муж
+                </label>
+                <label class="gender-option">
+                    <input type="radio" name="gender" value="Женский"> Жен
+                </label>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-cake2"></i></span>
+            <input type="text" name="birth_date" placeholder="Дата рождения / возраст (12.03.1967, 1967 г или 58 лет)">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-scissors"></i></span>
+            <input type="text" name="operation_type" placeholder="Тип операции">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-tags"></i></span>
+            <input type="text" name="marking"
+                   placeholder="{% if kind == 'large' %}Маркировка материала: какие органы пришли, кол-во объектов{% else %}Маркировка материала, кол-во объектов{% endif %}">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-clipboard2-pulse"></i></span>
+            <input type="text" name="clinical" placeholder="Клинический диагноз">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-person-badge"></i></span>
+            <input type="text" name="doctor" placeholder="ФИО лечащего врача">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-grid-3x3-gap"></i></span>
+            <input type="number" min="0" name="slides" placeholder="Количество стекол">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-box-seam"></i></span>
+            <input type="number" min="0" name="cassettes" placeholder="Количество кассет">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-palette"></i></span>
+            <input list="stains" name="stain_method" placeholder="Метод окраски">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-eyedropper"></i></span>
+            <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-file-earmark-check"></i></span>
+            <input type="text" name="result_date" placeholder="Дата выдачи результата" onfocus="this.type='date'">
+        </div>
+
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-rulers"></i> Макроскопическое описание</h2>
+    </div>
+
+{% if kind == 'small' %}
+
+    <div class="form-grid">
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-rulers"></i></span>
+            <input type="text" id="m-size" placeholder="Размеры (например, 1,0х0,3 см)">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-droplet"></i></span>
+            <input list="colors" id="m-color" placeholder="Цвет (например, белесоватого)">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-circle-square"></i></span>
+            <input list="consistencies" id="m-consistency" placeholder="Консистенция (например, мягкой)">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-translate"></i></span>
+            <select name="doc_lang" id="doc-lang">
+                {% for code, label in target_langs.items() %}
+                <option value="{{ code }}">Язык документа: {{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-check2-square"></i></span>
+            <select id="m-work">
+                {% for value in work_taken %}
+                <option value="{{ value }}">Взят в работу {{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-archive"></i></span>
+            <select id="m-archive">
+                {% for value in archive %}
+                <option value="{{ value }}">{{ value|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+    </div>
+
+{% else %}
+
+    <div class="form-grid">
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-translate"></i></span>
+            <select id="source-lang">
+                {% for code, label in source_langs.items() %}
+                <option value="{{ code }}" {% if code == 'ru' %}selected{% endif %}>С языка: {{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-arrow-right-circle"></i></span>
+            <select name="doc_lang" id="doc-lang">
+                {% for code, label in target_langs.items() %}
+                <option value="{{ code }}">На язык документа: {{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+    </div>
+
+    <label class="field-label" for="macro-notes">Наброски макроописания — по одному объекту на строку</label>
+    <textarea id="macro-notes"
+              placeholder="фрагмент молочной железы 7,0х5,5 см, желтоватый, мягкий, опухоль 1,0х1,0 см белесоватая&#10;край резекции&#10;лимфоузлы от 0,5 до 2,0 см, взят частично, есть архив"></textarea>
+
+    <label class="field-label" for="marking-notes">Наброски маркировки</label>
+    <textarea id="marking-notes" style="min-height:80px"
+              placeholder="опухоль 1-2, линия резекции 3-4, лимфоузлы 5 6 7"></textarea>
+
+{% endif %}
+
+    <button type="button" class="btn btn-generate" id="generate-macro">
+        <i class="bi bi-stars"></i> Сгенерировать описание
+    </button>
+
+    <div class="notice" id="macro-notice"></div>
+
+    <label class="field-label" for="macro-text">Макроскопическое описание в документе (можно редактировать)</label>
+    <textarea name="macro_text" id="macro-text"
+              placeholder="Нажмите «Сгенерировать описание» или введите текст вручную"></textarea>
+
+{% if kind == 'large' %}
+    <label class="field-label" for="marking-text">Маркировка в документе (можно редактировать)</label>
+    <textarea name="marking_text" id="marking-text" style="min-height:70px"
+              placeholder="опухоль – 1-2, линия резекции – 3-4, лимфоузлы – 5-6-7."></textarea>
+{% endif %}
+
+</div>
+
+<div class="form-actions">
+    <span></span>
+    <div class="right">
+        <button type="button" class="btn btn-primary" id="to-step-2">
+            Далее <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+<div class="status-line error" id="step1-status"></div>
+
+</section>
+
+<!-- ================= ШАГ 2 ================= -->
+
+<section class="step" data-step="2" hidden>
+
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-person-vcard"></i> Пациент</h2>
+        <a class="header-chip" id="header-chip" href="{{ url_for('settings') }}"></a>
+    </div>
+
+    <div class="patient-summary">
+        <div class="summary-tile"><span>ФИО пациента</span><b id="sum-name">—</b></div>
+        <div class="summary-tile"><span>Пол</span><b id="sum-gender">—</b></div>
+        <div class="summary-tile"><span>Дата рождения</span><b id="sum-birth">—</b></div>
+    </div>
+
+</div>
+
+{% if kind == 'large' %}
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-camera"></i> Фото макропрепарата</h2>
+    </div>
+
+    <div class="photo-slot macro-photo" data-photo-slot>
+        <div class="photo-drop" data-photo-drop>
+            <i class="bi bi-image"></i>
+            <span>Выберите фото с устройства — затем его можно повернуть и обрезать</span>
+        </div>
+        <div class="photo-buttons" data-photo-buttons hidden>
+            <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Повернуть / обрезать</button>
+            <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
+        </div>
+        <input type="file" name="macro_photo" accept="image/*">
+    </div>
+
+</div>
+{% endif %}
+
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-journal-medical"></i> Патогистологические заключения</h2>
+    </div>
+
+    <div id="conclusions"></div>
+
+    <button type="button" class="btn add-conclusion" id="add-conclusion">
+        <i class="bi bi-plus-lg"></i> Добавить заключение
+    </button>
+
+</div>
+
+<div class="glass-card">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-pen"></i> Подпись</h2>
+    </div>
+
+    <div class="form-grid">
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-award"></i></span>
+            <input type="text" name="consultant_title" value="Консультант, д.м.н. профессор" placeholder="Должность и степень">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-person-check"></i></span>
+            <input type="text" name="consultant_name" placeholder="ФИО консультанта">
+        </div>
+
+    </div>
+
+    <p class="hint">Печать и подпись в документ не вставляются: документ подписывается вручную.</p>
+
+    <label class="field-label">Примечание внизу документа</label>
+    <div class="note-preview">{{ note }}</div>
+
+</div>
+
+<div class="form-actions">
+    <button type="button" class="btn btn-ghost" id="to-step-1">
+        <i class="bi bi-arrow-left"></i> Назад
+    </button>
+    <div class="right">
+        <button type="button" class="btn btn-primary" data-download="docx">
+            <i class="bi bi-file-earmark-word"></i> Скачать DOCX
+        </button>
+        <button type="button" class="btn btn-primary" data-download="pdf">
+            <i class="bi bi-file-earmark-pdf"></i> Скачать PDF
+        </button>
+    </div>
+</div>
+
+<div class="status-line" id="download-status"></div>
+
+</section>
+
+</form>
+
+</div>
+
+<!-- Шаблон одного заключения -->
+<template id="conclusion-template">
+    <div class="conclusion-card" data-conclusion>
+        <div class="conclusion-head">
+            <h3>Заключение <span data-number></span></h3>
+            <button type="button" class="btn btn-danger btn-small" data-remove>
+                <i class="bi bi-x-lg"></i> Убрать
+            </button>
+        </div>
+        <div class="conclusion-body">
+            <div>
+                <label class="field-label">Патогистологическое заключение</label>
+                <input list="diagnoses" data-field="diagnosis" placeholder="Например, Протоковый инвазивный рак G-2">
+                <button type="button" class="btn btn-generate" data-generate>
+                    <i class="bi bi-stars"></i> Сгенерировать микроописание
+                </button>
+                <div class="notice" data-notice></div>
+                <label class="field-label">Микроскопическое описание (можно редактировать)</label>
+                <textarea data-field="micro" placeholder="Нажмите «Сгенерировать микроописание» или введите текст вручную"></textarea>
+                <div class="icdo-row">
+                    <div>
+                        <label class="field-label">Код МКБ-О</label>
+                        <input data-field="icdo" placeholder="например, 8500/3">
+                    </div>
+                    <p class="hint">Код предлагается автоматически по заключению. Проверьте и при необходимости исправьте.</p>
+                </div>
+            </div>
+            <div class="photo-slot" data-photo-slot>
+                <label class="field-label">Фото микропрепарата</label>
+                <div class="photo-drop" data-photo-drop>
+                    <i class="bi bi-image"></i>
+                    <span>Выберите фото гистологии с устройства</span>
+                </div>
+                <div class="photo-buttons" data-photo-buttons hidden>
+                    <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Изменить</button>
+                    <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
+                </div>
+                <input type="file" data-field="photo" accept="image/*">
+                <p class="hint">Подбор иллюстраций из библиотеки появится после обучения нейросети.</p>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Редактор фото: поворот и обрезка -->
+<div class="editor-backdrop" id="photo-editor" hidden>
+    <div class="editor">
+        <h3>Редактирование фото</h3>
+        <p>Поверните фото кнопками, затем выделите мышью или пальцем область для обрезки.</p>
+        <div class="editor-stage"><canvas id="editor-canvas"></canvas></div>
+        <div class="editor-tools">
+            <div>
+                <button type="button" class="btn btn-ghost btn-small" data-rotate="-90"><i class="bi bi-arrow-counterclockwise"></i> Повернуть влево</button>
+                <button type="button" class="btn btn-ghost btn-small" data-rotate="90"><i class="bi bi-arrow-clockwise"></i> Повернуть вправо</button>
+                <button type="button" class="btn btn-ghost btn-small" id="editor-reset"><i class="bi bi-bounding-box"></i> Сбросить обрезку</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-ghost btn-small" id="editor-cancel">Отмена</button>
+                <button type="button" class="btn btn-primary btn-small" id="editor-apply"><i class="bi bi-check-lg"></i> Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<datalist id="stains">
+    {% for value in stains %}<option value="{{ value }}">{% endfor %}
+</datalist>
+
+<datalist id="colors">
+    {% for value in colors %}<option value="{{ value }}">{% endfor %}
+</datalist>
+
+<datalist id="consistencies">
+    {% for value in consistencies %}<option value="{{ value }}">{% endfor %}
+</datalist>
+
+<datalist id="diagnoses">
+    {% for value in diagnoses %}<option value="{{ value }}">{% endfor %}
+</datalist>
+
+<script src="{{ url_for('static', filename='protocol.js') }}"></script>
+
+</body>
+</html>
