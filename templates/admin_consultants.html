@@ -185,7 +185,7 @@ class="photo">
 
 {% for file in consultant.documents.split(';') %}
 
-<a href="{{ url_for('static', filename='uploads/documents/' + file) }}"
+<a href="{{ url_for('consultant_document', id=consultant.id, filename=file) }}"
 target="_blank">
 
 📄 {{ file }}
@@ -206,18 +206,37 @@ target="_blank">
 ⏳ Ожидает проверки
 </span>{% endif %}
 
-</p><div class="buttons"><a
+</p><div class="buttons"><form
+method="POST"
+action="{{ url_for('approve_consultant', id=consultant.id) }}">
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<button
+type="submit"
 class="btn approve"
-href="{{ url_for('approve_consultant', id=consultant.id) }}">
+style="border:none;cursor:pointer;font-family:inherit;font-size:inherit">
 
 Одобрить
 
-</a><a
+</button>
+
+</form><form
+method="POST"
+action="{{ url_for('reject_consultant', id=consultant.id) }}"
+onsubmit="return confirm('Отклонить и удалить заявку консультанта?');">
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<button
+type="submit"
 class="btn reject"
-href="{{ url_for('reject_consultant', id=consultant.id) }}">
+style="border:none;cursor:pointer;font-family:inherit;font-size:inherit">
 
 Отклонить
 
-</a></div></div>{% endfor %}
+</button>
+
+</form></div></div>{% endfor %}
 
 </body></html>

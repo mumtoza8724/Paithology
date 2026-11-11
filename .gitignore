@@ -28,3 +28,6 @@ pycache/
 
 # User uploads
 static/uploads/
+
+# Private uploads (consultant documents)
+private_uploads/

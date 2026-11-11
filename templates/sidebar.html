@@ -149,9 +149,13 @@ fill="currentColor"/>
     </div>
 
     <div class="sidebar-footer">
-    <a href="/logout" class="menu-item">
+    <a href="/logout" class="menu-item"
+       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
         Выход
     </a>
+    <form id="logout-form" method="POST" action="/logout" style="display:none">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
 </div>
 
 </div>
