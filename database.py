@@ -129,3 +129,46 @@ class User(db.Model):
                 db.Boolean,
                 default=False
             )
+
+class Protocol(db.Model):
+
+    """Патогистологический протокол, созданный на странице «Создать протокол»."""
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+
+    kind = db.Column(db.String(10))
+
+    research_number = db.Column(db.String(200))
+    patient_name = db.Column(db.String(300))
+    admission_date = db.Column(db.String(20))
+
+    # Краткий текст заключений для списка и поиска
+    conclusion_summary = db.Column(db.Text)
+
+    # Все данные протокола в JSON (поля, тексты, имена файлов фото)
+    data = db.Column(db.Text)
+
+    created_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime)
+
+
+class ProtocolRevision(db.Model):
+
+    """История изменений протокола: снимок данных после каждого изменения."""
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    protocol_id = db.Column(db.Integer, db.ForeignKey("protocol.id"), index=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    created_at = db.Column(db.DateTime)
+
+    action = db.Column(db.String(50))
+
+    # Список изменённых разделов (JSON)
+    changes = db.Column(db.Text)
+
+    data = db.Column(db.Text)

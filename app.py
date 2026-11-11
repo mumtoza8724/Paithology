@@ -21,10 +21,12 @@ from database import (
 from doc_generator import create_doc
 from qr_generator import create_qr
 import protocols
+import protocol_store
 from datetime import datetime
 
 import os
 import io
+import json
 import re
 import hmac
 import secrets
@@ -175,6 +177,10 @@ app.config["PRIVATE_DOCUMENT_FOLDER"] = os.path.join(
     "documents"
 )
 os.makedirs(app.config["PRIVATE_DOCUMENT_FOLDER"], exist_ok=True)
+
+# Фото патогистологических протоколов: только через маршрут с проверкой владельца
+app.config["PROTOCOL_FOLDER"] = os.path.join(PRIVATE_UPLOAD_FOLDER, "protocols")
+os.makedirs(app.config["PROTOCOL_FOLDER"], exist_ok=True)
 
 # Старые документы остаются на месте, но публичный доступ к ним закрыт
 app.config["LEGACY_DOCUMENT_FOLDER"] = os.path.join(
@@ -1128,17 +1134,45 @@ def protocol_choose():
     return render_template("protocol_choose.html", current_user=g.user)
 
 
-@app.route("/protocols/new/<kind>")
-@login_required
-def protocol_form(kind):
+def render_protocol_form(kind, protocol=None):
 
-    if kind not in protocols.KINDS:
-        abort(404)
+    initial = None
+
+    if protocol is not None:
+
+        data = json.loads(protocol.data)
+
+        def image_url(name):
+            return url_for("protocol_image", id=protocol.id, name=name) if name else None
+
+        initial = {
+            "id": protocol.id,
+            "lang": data["lang"],
+            "fields": data["fields"],
+            "macro_inputs": data.get("macro_inputs", {}),
+            "macro_text": data["macro_text"],
+            "marking_text": data["marking_text"],
+            "macro_photo": {"name": data["macro_photo"], "url": image_url(data["macro_photo"])}
+            if data.get("macro_photo") else None,
+            "conclusions": [
+                {
+                    "diagnosis": c["diagnosis"],
+                    "icdo": c["icdo"],
+                    "micro": c["micro"],
+                    "photo": {"name": c["image"], "url": image_url(c["image"])} if c.get("image") else None,
+                }
+                for c in data["conclusions"]
+            ],
+            "consultant_title": data["consultant_title"],
+            "consultant_name": data["consultant_name"],
+        }
 
     return render_template(
         "protocol_form.html",
         kind=kind,
         title=PROTOCOL_TITLES[kind],
+        protocol=protocol,
+        initial=initial,
         current_user=g.user,
         stains=list(protocols.STAIN_METHODS),
         colors=list(protocols.COLORS),
@@ -1149,6 +1183,95 @@ def protocol_form(kind):
         target_langs=protocols.TARGET_LANGS,
         diagnoses=protocols.DIAGNOSES,
         note=protocols.NOTE_RU,
+    )
+
+
+@app.route("/protocols/new/<kind>")
+@login_required
+def protocol_form(kind):
+
+    if kind not in protocols.KINDS:
+        abort(404)
+
+    return render_protocol_form(kind)
+
+
+@app.route("/protocols/<int:id>/edit")
+@login_required
+def protocol_edit(id):
+
+    protocol = own_protocol_or_404(id)
+
+    return render_protocol_form(protocol.kind, protocol)
+
+
+def own_protocol_or_404(id):
+
+    try:
+        return protocol_store.get_own(id, g.user.id)
+    except protocol_store.ProtocolNotFound:
+        abort(404)
+
+
+def save_protocol_from_form():
+
+    """Разбирает форму и сохраняет протокол в архив. Возвращает (протокол, изменён) или ответ с ошибкой."""
+
+    try:
+        parsed = protocols.parse_form(request.form, request.files)
+    except protocols.ProtocolError as e:
+        return None, (jsonify(error=str(e)), 400)
+
+    try:
+        protocol, changed = protocol_store.save(
+            g.user.id, parsed, app.config["PROTOCOL_FOLDER"]
+        )
+    except protocol_store.ProtocolNotFound:
+        return None, (jsonify(error="Протокол не найден"), 404)
+
+    return (protocol, changed), None
+
+
+def protocol_file_response(protocol, output):
+
+    data = protocol_store.document_data(protocol, app.config["PROTOCOL_FOLDER"])
+
+    if output == "docx":
+        content = protocols.build_docx(data)
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        content = protocols.build_pdf(data)
+        mimetype = "application/pdf"
+
+    response = send_file(
+        io.BytesIO(content),
+        as_attachment=True,
+        download_name=protocols.file_name(data, output),
+        mimetype=mimetype
+    )
+
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Protocol-Id"] = str(protocol.id)
+
+    return response
+
+
+@app.route("/protocols/save", methods=["POST"])
+@login_required
+def protocol_save():
+
+    result, error = save_protocol_from_form()
+
+    if error:
+        return error
+
+    protocol, changed = result
+
+    return jsonify(
+        id=protocol.id,
+        changed=changed,
+        view_url=url_for("protocol_view", id=protocol.id),
+        edit_url=url_for("protocol_edit", id=protocol.id),
     )
 
 
@@ -1223,36 +1346,100 @@ def protocol_download():
     if output not in ("docx", "pdf"):
         return jsonify(error="Неизвестный формат файла"), 400
 
-    try:
-        data = protocols.parse_form(request.form, request.files)
-    except protocols.ProtocolError as e:
-        return jsonify(error=str(e)), 400
+    # Каждый скачанный протокол автоматически сохраняется в архив
+    result, error = save_protocol_from_form()
 
-    # Документ собирается в памяти и не сохраняется на сервере
-    if output == "docx":
-        content = protocols.build_docx(data)
-        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    else:
-        content = protocols.build_pdf(data)
-        mimetype = "application/pdf"
+    if error:
+        return error
 
-    response = send_file(
-        io.BytesIO(content),
-        as_attachment=True,
-        download_name=protocols.file_name(data, output),
-        mimetype=mimetype
-    )
+    protocol, _ = result
 
-    response.headers["Cache-Control"] = "no-store"
-
-    return response
+    return protocol_file_response(protocol, output)
 
 
 @app.route("/protocols/archive")
 @login_required
 def protocols_archive():
 
-    return render_template("protocols_archive.html", current_user=g.user)
+    filters = {
+        name: request.args.get(name, "").strip()
+        for name in ("research_number", "patient_name", "conclusion", "admission_date")
+    }
+
+    items = protocol_store.search(g.user.id, **filters)
+
+    return render_template(
+        "protocols_archive.html",
+        current_user=g.user,
+        protocols=items,
+        filters=filters,
+        kind_labels=protocol_store.KIND_LABELS,
+    )
+
+
+@app.route("/protocols/<int:id>")
+@login_required
+def protocol_view(id):
+
+    protocol = own_protocol_or_404(id)
+
+    data = json.loads(protocol.data)
+
+    return render_template(
+        "protocol_view.html",
+        current_user=g.user,
+        protocol=protocol,
+        data=data,
+        rows=protocols.table_rows({**data, "lang": "ru"}),
+        kind_label=protocol_store.KIND_LABELS.get(protocol.kind, ""),
+        history=protocol_store.history(protocol),
+        lang_label=protocols.TARGET_LANGS.get(data["lang"], data["lang"]),
+    )
+
+
+@app.route("/protocols/<int:id>/download/<output>")
+@login_required
+def protocol_archive_download(id, output):
+
+    protocol = own_protocol_or_404(id)
+
+    if output not in ("docx", "pdf"):
+        abort(404)
+
+    return protocol_file_response(protocol, output)
+
+
+@app.route("/protocols/<int:id>/image/<name>")
+@login_required
+def protocol_image(id, name):
+
+    protocol = own_protocol_or_404(id)
+
+    if not protocol_store.IMAGE_NAME.match(name):
+        abort(404)
+
+    response = send_from_directory(
+        protocol_store.protocol_folder(
+            app.config["PROTOCOL_FOLDER"], protocol_store.storage_key(protocol)
+        ),
+        name
+    )
+
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    return response
+
+
+@app.route("/protocols/<int:id>/delete", methods=["POST"])
+@login_required
+def protocol_delete(id):
+
+    protocol = own_protocol_or_404(id)
+
+    protocol_store.delete(protocol, app.config["PROTOCOL_FOLDER"])
+
+    return redirect(url_for("protocols_archive"))
 
 
 @app.route("/settings")

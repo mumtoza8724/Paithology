@@ -229,6 +229,11 @@ LABELS = {
     },
 }
 
+MACRO_INPUTS = (
+    "macro_size", "macro_color", "macro_consistency", "macro_work",
+    "macro_archive", "source_lang", "macro_notes", "marking_notes",
+)
+
 MAX_CONCLUSIONS = 20
 MAX_TEXT = 10000
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
@@ -621,15 +626,19 @@ def parse_form(form, files):
 
         diagnosis = limited(form.get(f"c-{i}-diagnosis"))
         micro = limited(form.get(f"c-{i}-micro"))
+        image = process_image(read_upload(files.get(f"c-{i}-photo")))
+        existing = limited(form.get(f"c-{i}-photo_existing"))[:100]
 
-        if not diagnosis and not micro:
+        if not diagnosis and not micro and not image and not existing:
             continue
 
         conclusions.append({
             "diagnosis": diagnosis,
             "icdo": limited(form.get(f"c-{i}-icdo"))[:20],
             "micro": micro,
-            "image": process_image(read_upload(files.get(f"c-{i}-photo"))),
+            "image": image,
+            # Уже сохранённое фото при редактировании протокола из архива
+            "image_existing": existing,
         })
 
     fields = {
@@ -642,15 +651,27 @@ def parse_form(form, files):
         )
     }
 
+    protocol_id = form.get("protocol_id", "")
+
     return {
+        "protocol_id": int(protocol_id) if protocol_id.isdigit() else None,
         "kind": kind,
         "lang": lang,
         "fields": fields,
+        # Исходные данные генератора, чтобы восстановить форму при редактировании
+        "macro_inputs": {
+            name: limited(form.get(name))[:2000]
+            for name in MACRO_INPUTS
+            if form.get(name)
+        },
         "macro_text": limited(form.get("macro_text")),
         "marking_text": limited(form.get("marking_text")) if kind == "large" else "",
         "macro_photo": (
             process_image(read_upload(files.get("macro_photo")))
             if kind == "large" else None
+        ),
+        "macro_photo_existing": (
+            limited(form.get("macro_photo_existing"))[:100] if kind == "large" else ""
         ),
         "conclusions": conclusions,
         "consultant_title": limited(form.get("consultant_title")),

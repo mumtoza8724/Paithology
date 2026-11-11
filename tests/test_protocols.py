@@ -1,9 +1,7 @@
 """
 Тесты страниц и сборки патогистологических протоколов.
 
-Только вымышленные данные и синтетические изображения. Протоколы не
-сохраняются: тесты также проверяют, что после скачивания в базе и в папке
-загрузок ничего не появилось.
+Только вымышленные данные и синтетические изображения.
 """
 
 import io
@@ -438,7 +436,10 @@ def test_download_limits_conclusions(doctor):
     assert response.status_code == 400
 
 
-def test_download_stores_nothing(app, doctor):
+def test_download_keeps_public_uploads_and_case_archive_untouched(app, doctor):
+
+    # Протоколы хранятся в своей таблице и закрытой папке, а не в архиве ИИ-анализа
+    # и не в публичной static/uploads
 
     uploads = os.path.join("static", "uploads")
     before = sorted(os.listdir(uploads)) if os.path.isdir(uploads) else []

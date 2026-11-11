@@ -658,3 +658,173 @@
         display:none;
     }
 }
+
+/* ---------- Список архива ---------- */
+
+.archive-list{
+    margin-top:10px;
+}
+
+.archive-row{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:12px;
+    align-items:center;
+    padding:16px 18px;
+    border-radius:14px;
+    color:white;
+    text-decoration:none;
+    border:1px solid transparent;
+    transition:.2s;
+}
+
+.archive-row + .archive-row{
+    border-top-color:rgba(139, 92, 246, .12);
+}
+
+.archive-row:hover{
+    background:rgba(124, 77, 255, .12);
+    border-color:rgba(168, 85, 247, .45);
+}
+
+.archive-number{
+    font-weight:600;
+}
+
+.archive-conclusion{
+    color:#d9d9f5;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.kind-badge{
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:10px;
+    font-size:13px;
+    color:#e9d5ff;
+    background:rgba(124, 77, 255, .2);
+    border:1px solid rgba(168, 85, 247, .4);
+}
+
+.kind-large{
+    color:#fbcfe8;
+    background:rgba(236, 72, 153, .15);
+    border-color:rgba(236, 72, 153, .4);
+}
+
+/* ---------- Карточка протокола ---------- */
+
+.view-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-bottom:26px;
+}
+
+.view-actions form{
+    margin:0;
+}
+
+.view-grid{
+    display:grid;
+    grid-template-columns:1fr 340px;
+    gap:26px;
+    align-items:start;
+}
+
+.data-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.data-table td{
+    padding:10px 12px;
+    border-bottom:1px solid rgba(139, 92, 246, .15);
+    vertical-align:top;
+}
+
+.data-table td:first-child{
+    width:45%;
+    color:#a5a6c9;
+}
+
+.text-block{
+    white-space:pre-line;
+    line-height:1.6;
+    color:#e5e5f7;
+}
+
+.view-photo{
+    display:block;
+    max-width:100%;
+    max-height:320px;
+    margin-top:16px;
+    border-radius:14px;
+}
+
+.history-card{
+    position:sticky;
+    top:30px;
+}
+
+.history{
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.history li{
+    position:relative;
+    padding:0 0 18px 22px;
+    border-left:2px solid rgba(168, 85, 247, .4);
+}
+
+.history li::before{
+    content:"";
+    position:absolute;
+    left:-7px;
+    top:2px;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#a855f7;
+}
+
+.history time{
+    display:block;
+    color:#a5a6c9;
+    font-size:13px;
+}
+
+.history b{
+    display:block;
+    margin:4px 0;
+}
+
+.history span{
+    color:#d9d9f5;
+    font-size:14px;
+    line-height:1.5;
+}
+
+@media(max-width:900px){
+
+    .archive-row,
+    .view-grid{
+        grid-template-columns:1fr;
+    }
+
+    .archive-row{
+        gap:4px;
+    }
+
+    .archive-conclusion{
+        white-space:normal;
+    }
+
+    .history-card{
+        position:static;
+    }
+}

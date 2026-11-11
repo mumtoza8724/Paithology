@@ -10,6 +10,10 @@
 
     const HEADER_KEY = "paithology.labHeader";
 
+    // Данные протокола из архива при редактировании
+    const initialNode = document.getElementById("protocol-initial");
+    const initial = initialNode ? JSON.parse(initialNode.textContent) : null;
+
     function value(name) {
         const field = form.elements[name];
         if (!field) return "";
@@ -113,7 +117,7 @@
         });
     }
 
-    function addConclusion() {
+    function addConclusion(data) {
         const index = counter++;
         const card = template.content.firstElementChild.cloneNode(true);
         card.querySelectorAll("[data-field]").forEach((field) => {
@@ -137,13 +141,18 @@
             }
         }));
 
-        setupPhotoSlot(card.querySelector("[data-photo-slot]"));
+        if (data) {
+            card.querySelector("[data-field=diagnosis]").value = data.diagnosis || "";
+            card.querySelector("[data-field=micro]").value = data.micro || "";
+            card.querySelector("[data-field=icdo]").value = data.icdo || "";
+        }
+
+        setupPhotoSlot(card.querySelector("[data-photo-slot]"), data && data.photo);
         list.appendChild(card);
         renumber();
     }
 
-    document.getElementById("add-conclusion").addEventListener("click", addConclusion);
-    addConclusion();
+    document.getElementById("add-conclusion").addEventListener("click", () => addConclusion());
 
     // ---------- Фото и редактор ----------
 
@@ -261,14 +270,35 @@
         });
     }
 
-    function setupPhotoSlot(slot) {
+    function setupPhotoSlot(slot, existing) {
         const input = slot.querySelector("input[type=file]");
+        const existingInput = slot.querySelector("[data-photo-existing]");
         const drop = slot.querySelector("[data-photo-drop]");
         const buttons = slot.querySelector("[data-photo-buttons]");
         const placeholder = drop.innerHTML;
         let original = null;
+        let existingUrl = null;
+
+        function showPreview(src) {
+            drop.innerHTML = "";
+            const img = document.createElement("img");
+            img.src = src;
+            drop.appendChild(img);
+            buttons.hidden = false;
+        }
+
+        // Уже сохранённое в архиве фото: остаётся, пока его не заменят или не удалят
+        if (existing && existing.name) {
+            existingInput.value = existing.name;
+            existingUrl = existing.url;
+            showPreview(existing.url);
+        }
 
         function setFile(blob) {
+            if (blob) {
+                existingInput.value = "";
+                existingUrl = null;
+            }
             const transfer = new DataTransfer();
             if (blob) transfer.items.add(new File([blob], "photo.jpg", { type: "image/jpeg" }));
             input.files = transfer.files;
@@ -298,11 +328,48 @@
             edit(file);
         });
 
-        slot.querySelector("[data-photo-edit]").addEventListener("click", () => edit(original || input.files[0]));
-        slot.querySelector("[data-photo-remove]").addEventListener("click", () => { original = null; setFile(null); });
+        slot.querySelector("[data-photo-edit]").addEventListener("click", async () => {
+            if (original || input.files[0]) return edit(original || input.files[0]);
+            if (existingUrl) {
+                const blob = await (await fetch(existingUrl)).blob();
+                original = new File([blob], "photo.jpg", { type: blob.type });
+                edit(original);
+            }
+        });
+        slot.querySelector("[data-photo-remove]").addEventListener("click", () => {
+            original = null;
+            existingInput.value = "";
+            existingUrl = null;
+            setFile(null);
+        });
     }
 
-    document.querySelectorAll(".macro-photo[data-photo-slot]").forEach(setupPhotoSlot);
+    document.querySelectorAll(".macro-photo[data-photo-slot]").forEach((slot) => {
+        setupPhotoSlot(slot, initial && initial.macro_photo);
+    });
+
+    // ---------- Заполнение из архива ----------
+
+    function setValue(name, text) {
+        const field = form.elements[name];
+        if (!field || text === undefined || text === null) return;
+        if (field instanceof RadioNodeList) { field.value = text; return; }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text) && field.getAttribute("onfocus")) field.type = "date";
+        field.value = text;
+    }
+
+    if (initial) {
+        Object.entries(initial.fields || {}).forEach(([name, text]) => setValue(name, text));
+        Object.entries(initial.macro_inputs || {}).forEach(([name, text]) => setValue(name, text));
+        setValue("doc_lang", initial.lang);
+        setValue("macro_text", initial.macro_text);
+        setValue("marking_text", initial.marking_text);
+        setValue("consultant_title", initial.consultant_title);
+        setValue("consultant_name", initial.consultant_name);
+        (initial.conclusions || []).forEach((c) => addConclusion(c));
+    }
+
+    if (!list.children.length) addConclusion();
 
     // ---------- Шапка лаборатории (хранится в браузере) ----------
 
@@ -325,16 +392,59 @@
     // ---------- Скачивание ----------
 
     const downloadStatus = document.getElementById("download-status");
+    const protocolId = document.getElementById("protocol-id");
 
-    document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => withBusy(button, async () => {
-        const format = button.dataset.download;
+    async function collect() {
         const data = new FormData(form);
-        data.set("format", format);
         const h = readHeader() || {};
         data.set("header_org", h.org || "");
         data.set("header_form", h.form || "");
         data.set("header_address", h.address || "");
         if (h.logo) data.set("header_logo", await dataUrlToBlob(h.logo), "logo.png");
+        return data;
+    }
+
+    // После первого сохранения форма продолжает работать с тем же протоколом
+    function remember(id, editUrl) {
+        if (!id) return;
+        protocolId.value = id;
+        history.replaceState(null, "", editUrl || `/protocols/${id}/edit`);
+    }
+
+    function savedMessage(id, prefix) {
+        downloadStatus.className = "status-line";
+        downloadStatus.innerHTML = "";
+        downloadStatus.append(prefix + " ");
+        const link = document.createElement("a");
+        link.href = `/protocols/${id}`;
+        link.textContent = "Открыть в архиве";
+        link.style.color = "#d8b4fe";
+        downloadStatus.append(link);
+    }
+
+    const saveButton = document.getElementById("save-protocol");
+
+    saveButton.addEventListener("click", () => withBusy(saveButton, async () => {
+        downloadStatus.className = "status-line";
+        downloadStatus.textContent = "Сохраняю…";
+        try {
+            const response = await fetch(page.dataset.saveUrl, {
+                method: "POST", body: await collect(), headers: { "X-CSRF-Token": csrf },
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Не удалось сохранить протокол");
+            remember(result.id, result.edit_url);
+            savedMessage(result.id, result.changed ? "Сохранено в архив." : "Изменений нет, протокол уже в архиве.");
+        } catch (error) {
+            downloadStatus.className = "status-line error";
+            downloadStatus.textContent = error.message;
+        }
+    }));
+
+    document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => withBusy(button, async () => {
+        const format = button.dataset.download;
+        const data = await collect();
+        data.set("format", format);
 
         downloadStatus.className = "status-line";
         downloadStatus.textContent = "Собираю документ…";
@@ -358,7 +468,9 @@
             link.click();
             link.remove();
             setTimeout(() => URL.revokeObjectURL(link.href), 10000);
-            downloadStatus.textContent = "Документ скачан. На сервере он не сохраняется.";
+            const id = response.headers.get("X-Protocol-Id");
+            remember(id);
+            if (id) savedMessage(id, "Документ скачан и сохранён в архив.");
         } catch (error) {
             downloadStatus.className = "status-line error";
             downloadStatus.textContent = error.message;

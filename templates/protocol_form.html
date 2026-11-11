@@ -25,16 +25,25 @@
      data-csrf="{{ csrf_token() }}"
      data-macro-url="{{ url_for('protocol_generate_macro') }}"
      data-micro-url="{{ url_for('protocol_generate_micro') }}"
-     data-download-url="{{ url_for('protocol_download') }}">
+     data-download-url="{{ url_for('protocol_download') }}"
+     data-save-url="{{ url_for('protocol_save') }}">
 
     <h1 class="page-title">{{ title }}</h1>
 
-    <p class="page-subtitle">Патогистологическое заключение · DOCX или PDF</p>
+    <p class="page-subtitle">
+        {% if protocol %}Редактирование протокола из архива{% else %}Патогистологическое заключение · DOCX или PDF{% endif %}
+    </p>
 
     <div class="page-actions">
+        {% if protocol %}
+        <a class="link-back" href="{{ url_for('protocol_view', id=protocol.id) }}">
+            <i class="bi bi-arrow-left"></i> К карточке протокола
+        </a>
+        {% else %}
         <a class="link-back" href="{{ url_for('protocol_choose') }}">
             <i class="bi bi-arrow-left"></i> Выбрать другой вид материала
         </a>
+        {% endif %}
     </div>
 
     <div class="stepper">
@@ -47,6 +56,7 @@
 
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="kind" value="{{ kind }}">
+<input type="hidden" name="protocol_id" id="protocol-id" value="{{ protocol.id if protocol else '' }}">
 
 <!-- ================= ШАГ 1 ================= -->
 
@@ -159,17 +169,17 @@
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-rulers"></i></span>
-            <input type="text" id="m-size" placeholder="Размеры (например, 1,0х0,3 см)">
+            <input type="text" id="m-size" name="macro_size" placeholder="Размеры (например, 1,0х0,3 см)">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-droplet"></i></span>
-            <input list="colors" id="m-color" placeholder="Цвет (например, белесоватого)">
+            <input list="colors" id="m-color" name="macro_color" placeholder="Цвет (например, белесоватого)">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-circle-square"></i></span>
-            <input list="consistencies" id="m-consistency" placeholder="Консистенция (например, мягкой)">
+            <input list="consistencies" id="m-consistency" name="macro_consistency" placeholder="Консистенция (например, мягкой)">
         </div>
 
         <div class="input-group">
@@ -183,7 +193,7 @@
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-check2-square"></i></span>
-            <select id="m-work">
+            <select id="m-work" name="macro_work">
                 {% for value in work_taken %}
                 <option value="{{ value }}">Взят в работу {{ value }}</option>
                 {% endfor %}
@@ -192,7 +202,7 @@
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-archive"></i></span>
-            <select id="m-archive">
+            <select id="m-archive" name="macro_archive">
                 {% for value in archive %}
                 <option value="{{ value }}">{{ value|capitalize }}</option>
                 {% endfor %}
@@ -207,7 +217,7 @@
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-translate"></i></span>
-            <select id="source-lang">
+            <select id="source-lang" name="source_lang">
                 {% for code, label in source_langs.items() %}
                 <option value="{{ code }}" {% if code == 'ru' %}selected{% endif %}>С языка: {{ label }}</option>
                 {% endfor %}
@@ -226,11 +236,11 @@
     </div>
 
     <label class="field-label" for="macro-notes">Наброски макроописания — по одному объекту на строку</label>
-    <textarea id="macro-notes"
+    <textarea id="macro-notes" name="macro_notes"
               placeholder="фрагмент молочной железы 7,0х5,5 см, желтоватый, мягкий, опухоль 1,0х1,0 см белесоватая&#10;край резекции&#10;лимфоузлы от 0,5 до 2,0 см, взят частично, есть архив"></textarea>
 
     <label class="field-label" for="marking-notes">Наброски маркировки</label>
-    <textarea id="marking-notes" style="min-height:80px"
+    <textarea id="marking-notes" name="marking_notes" style="min-height:80px"
               placeholder="опухоль 1-2, линия резекции 3-4, лимфоузлы 5 6 7"></textarea>
 
 {% endif %}
@@ -302,6 +312,7 @@
             <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
         </div>
         <input type="file" name="macro_photo" accept="image/*">
+        <input type="hidden" name="macro_photo_existing" data-photo-existing>
     </div>
 
 </div>
@@ -353,6 +364,9 @@
         <i class="bi bi-arrow-left"></i> Назад
     </button>
     <div class="right">
+        <button type="button" class="btn btn-ghost" id="save-protocol">
+            <i class="bi bi-archive"></i> Сохранить в архив
+        </button>
         <button type="button" class="btn btn-primary" data-download="docx">
             <i class="bi bi-file-earmark-word"></i> Скачать DOCX
         </button>
@@ -408,6 +422,7 @@
                     <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
                 </div>
                 <input type="file" data-field="photo" accept="image/*">
+                <input type="hidden" data-field="photo_existing" data-photo-existing>
                 <p class="hint">Подбор иллюстраций из библиотеки появится после обучения нейросети.</p>
             </div>
         </div>
@@ -449,6 +464,10 @@
 <datalist id="diagnoses">
     {% for value in diagnoses %}<option value="{{ value }}">{% endfor %}
 </datalist>
+
+{% if initial %}
+<script type="application/json" id="protocol-initial">{{ initial|tojson }}</script>
+{% endif %}
 
 <script src="{{ url_for('static', filename='protocol.js') }}"></script>
 

@@ -23,21 +23,24 @@
 
     <h1 class="page-title">Архив протоколов</h1>
 
-    <p class="page-subtitle">Созданные патогистологические заключения</p>
+    <p class="page-subtitle">{{ current_user.username }} · созданные патогистологические заключения</p>
 
     <div class="glass-card">
 
-        <div class="search-strip">
-            <input type="text" placeholder="№ исследования" disabled>
-            <input type="text" placeholder="ФИО пациента" disabled>
-            <input type="text" placeholder="Заключение" disabled>
-            <input type="text" placeholder="Дата поступления" disabled>
-            <button type="button" class="btn btn-primary" disabled>Поиск</button>
-        </div>
+        <form method="GET" class="search-strip">
+            <input type="text" name="research_number" placeholder="№ исследования" value="{{ filters.research_number }}">
+            <input type="text" name="patient_name" placeholder="ФИО пациента" value="{{ filters.patient_name }}">
+            <input type="text" name="conclusion" placeholder="Заключение" value="{{ filters.conclusion }}">
+            <input type="text" name="admission_date" placeholder="Дата поступления" value="{{ filters.admission_date }}"
+                   onfocus="this.type='date'">
+            <button type="submit" class="btn btn-primary">Поиск</button>
+        </form>
 
     </div>
 
     <div class="glass-card">
+
+        {% if protocols %}
 
         <div class="archive-columns">
             <span>№ исследования</span>
@@ -47,28 +50,56 @@
             <span>Изменён</span>
         </div>
 
+        <div class="archive-list">
+            {% for item in protocols %}
+            <a class="archive-row" href="{{ url_for('protocol_view', id=item.id) }}">
+                <span class="archive-number">{{ item.research_number or "—" }}</span>
+                <span>{{ item.patient_name or "—" }}</span>
+                <span><span class="kind-badge kind-{{ item.kind }}">{{ kind_labels.get(item.kind, item.kind) }}</span></span>
+                <span class="archive-conclusion">{{ item.conclusion_summary or "—" }}</span>
+                <span><time data-local datetime="{{ item.updated_at.isoformat() }}Z">{{ item.updated_at.strftime('%d.%m.%Y %H:%M') }} UTC</time></span>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% else %}
+
         <div class="empty-state">
 
             <i class="bi bi-archive"></i>
 
+            {% if filters.values()|select|list %}
+            <h2>Ничего не найдено</h2>
+            <p>Измените условия поиска.</p>
+            <a class="btn btn-ghost" href="{{ url_for('protocols_archive') }}">Сбросить поиск</a>
+            {% else %}
             <h2>Архив пока пуст</h2>
-
             <p>
-                Здесь будут храниться созданные протоколы: открыть, отредактировать,
-                повторно скачать DOCX или PDF и посмотреть историю изменений.
-                Сохранение включится после подключения постоянного хранилища.
-                Сейчас протоколы на сервере не сохраняются и скачиваются сразу.
+                Протокол попадает сюда автоматически, когда вы скачиваете DOCX или PDF
+                или нажимаете «Сохранить в архив».
             </p>
-
             <a class="btn btn-primary" href="{{ url_for('protocol_choose') }}">
                 <i class="bi bi-plus-lg"></i> Создать протокол
             </a>
+            {% endif %}
 
         </div>
 
+        {% endif %}
+
+    </div>
+
+    <div class="info-banner">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            На бесплатном тарифе сервера архив временный: после обновления или перезапуска
+            приложения он может очиститься, как и архив исследований ИИ-анализа.
+        </div>
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='local-time.js') }}"></script>
 
 </body>
 </html>

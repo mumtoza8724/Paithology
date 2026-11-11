@@ -118,7 +118,7 @@ stroke-linecap="round"/>
 </a>
 
 <a href="{{ url_for('protocols_archive') }}"
-class="menu-item {% if request.endpoint == 'protocols_archive' %}active{% endif %}">
+class="menu-item {% if request.endpoint in ('protocols_archive', 'protocol_view', 'protocol_edit') %}active{% endif %}">
 
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
 
