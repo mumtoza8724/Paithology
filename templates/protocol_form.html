@@ -237,6 +237,11 @@
             <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Повернуть / обрезать</button>
             <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
         </div>
+        <div class="capture-row camera-only">
+            <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> Сделать фото</button>
+            <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> Выбрать файл</button>
+        </div>
+        <input type="file" accept="image/*" capture="environment" data-photo-camera hidden>
         <input type="file" name="macro_photo" accept="image/*">
         <input type="hidden" name="macro_photo_existing" data-photo-existing>
     </div>
@@ -357,6 +362,11 @@
                     <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Изменить</button>
                     <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
                 </div>
+                <div class="capture-row camera-only">
+                    <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> Сделать фото</button>
+                    <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> Выбрать файл</button>
+                </div>
+                <input type="file" accept="image/*" capture="environment" data-photo-camera hidden>
                 <input type="file" data-field="photo" accept="image/*">
                 <input type="hidden" data-field="photo_existing" data-photo-existing>
                 <p class="hint">Подбор иллюстраций из библиотеки появится после обучения нейросети.</p>

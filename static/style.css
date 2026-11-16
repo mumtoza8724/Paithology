@@ -1084,3 +1084,27 @@ width:100%;
 width:100%;
 
 }
+
+
+/* Телефоны: фон с background-attachment:fixed на мобильных браузерах
+   растягивается на всю высоту страницы или обрывается — рисуем его
+   отдельным закреплённым слоем. */
+
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+
+    html{
+        background:#0b0a1f;
+    }
+
+    body{
+        background:none;
+    }
+
+    body::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        z-index:-1;
+        background:url('/static/background.jpg') center / cover no-repeat;
+    }
+}
