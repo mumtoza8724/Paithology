@@ -217,6 +217,8 @@ fill="currentColor"/>
 
 </button>
 
+<link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
+
 <script>
 
 function toggleMenu() {
@@ -233,5 +235,18 @@ function toggleMenu() {
 
     document.body.classList.toggle("sidebar-open");
 }
+
+// На телефоне меню закрывается касанием за его пределами
+document.addEventListener("click", function (event) {
+
+    const sidebar = document.getElementById("sidebar");
+
+    if (!sidebar.classList.contains("open")) return;
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    if (sidebar.contains(event.target)) return;
+    if (event.target.closest(".menu-btn")) return;
+
+    toggleMenu();
+});
 
 </script>

@@ -1,0 +1,563 @@
+/*
+ * Мобильная версия PAITHOLOGY.
+ *
+ * Подключается последним на всех страницах (через sidebar.html, а на
+ * страницах без меню — отдельной ссылкой) и действует только на узких
+ * экранах, поэтому вид на компьютере не меняется.
+ */
+
+/* Кнопки камеры и подписи для касания видны только на телефонах и планшетах */
+.camera-only,
+.touch-only{
+    display:none !important;
+}
+
+/* Подписи зоны загрузки наследуют цвет заголовка, а не правило .drop-zone span */
+.drop-zone h2 > span,
+.drop-zone p > span{
+    color:inherit;
+}
+
+.capture-row{
+    width:100%;
+    gap:10px;
+    margin-top:12px;
+    box-sizing:border-box;
+}
+
+.capture-btn{
+    flex:1 1 0;
+    min-width:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:50px;
+    padding:10px 12px;
+    border:none;
+    border-radius:14px;
+    color:white;
+    font:inherit;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    background:linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+.capture-btn-ghost{
+    background:rgba(124, 77, 255, .14);
+    border:1px solid rgba(168, 85, 247, .45);
+}
+
+.capture-btn i{
+    font-size:18px;
+}
+
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+
+    .camera-only{
+        display:flex !important;
+    }
+
+    .touch-only{
+        display:inline !important;
+    }
+
+    .touch-hide{
+        display:none !important;
+    }
+}
+
+@media (max-width:768px){
+
+    html{
+        -webkit-text-size-adjust:100%;
+        text-size-adjust:100%;
+    }
+
+    html,
+    body{
+        max-width:100%;
+        overflow-x:clip;
+    }
+
+    /* iOS увеличивает страницу при фокусе на поле со шрифтом меньше 16px */
+    input,
+    select,
+    textarea{
+        font-size:16px !important;
+    }
+
+    img,
+    video,
+    canvas{
+        max-width:100%;
+    }
+
+    /* ---------- Меню ---------- */
+
+    .menu-btn{
+        top:12px;
+        left:12px;
+        margin:0;
+        padding:0;
+        width:46px;
+        height:46px;
+        transition:left .3s;
+    }
+
+    .sidebar{
+        width:min(300px, 84vw);
+        left:-110%;
+        padding:16px 14px;
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        font-size:16px;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    /* Открытое меню закрывается кнопкой справа от него */
+    body.sidebar-open .menu-btn{
+        left:calc(min(300px, 84vw) + 10px);
+    }
+
+    body.sidebar-open{
+        padding-left:0 !important;
+        overflow:hidden;
+    }
+
+    body.sidebar-open::after{
+        content:"";
+        position:fixed;
+        inset:0;
+        z-index:999;
+        background:rgba(3, 3, 15, .55);
+    }
+
+    .main.shift{
+        margin-left:0;
+    }
+
+    .sidebar-logo{
+        width:160px;
+    }
+
+    .sidebar-menu{
+        gap:4px;
+    }
+
+    .sidebar .menu-item{
+        padding:12px;
+    }
+
+    .sidebar-footer{
+        position:static;
+        margin-top:auto;
+        padding-top:12px;
+    }
+
+    /* ---------- Общая раскладка ---------- */
+
+    .main{
+        width:auto;
+        margin-left:0;
+        padding:76px 16px 32px;
+        box-sizing:border-box;
+    }
+
+    .page-title{
+        font-size:28px;
+        line-height:1.2;
+    }
+
+    .glass-card{
+        padding:18px;
+        border-radius:18px;
+    }
+
+    .form-grid,
+    .macro-block .form-grid{
+        grid-template-columns:1fr;
+        gap:12px;
+    }
+
+    .input-group{
+        gap:10px;
+        min-width:0;
+    }
+
+    .input-group > *{
+        min-width:0;
+    }
+
+    .icon{
+        width:46px;
+        height:46px;
+        font-size:18px;
+    }
+
+    .gender-box{
+        gap:18px;
+        padding:0 14px;
+    }
+
+    /* ---------- Главная: загрузка снимков ---------- */
+
+    .upload-layout{
+        grid-template-columns:1fr;
+        gap:20px;
+    }
+
+    .upload-right{
+        order:-1;
+    }
+
+    .drop-zone{
+        height:auto;
+        padding:26px 16px;
+        box-sizing:border-box;
+        text-align:center;
+    }
+
+    .drop-zone h2{
+        font-size:20px;
+        margin:10px 0 6px;
+    }
+
+    .drop-zone p{
+        margin-bottom:8px;
+    }
+
+    .drop-zone span{
+        font-size:13px;
+    }
+
+    #preview-container{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:12px;
+    }
+
+    .add-more{
+        width:auto;
+        height:170px;
+    }
+
+    .start-ai-btn{
+        height:auto;
+        min-height:68px;
+        padding:14px 16px;
+        gap:12px;
+        border-radius:18px;
+        font-size:16px;
+    }
+
+    .files-card,
+    .info-card,
+    .security-card{
+        padding:18px;
+        border-radius:18px;
+    }
+
+    /* ---------- Протоколы ---------- */
+
+    .choice-card{
+        padding:22px;
+    }
+
+    .protocol .card-heading h2,
+    .glass-card h2{
+        font-size:21px;
+    }
+
+    .stepper{
+        flex-wrap:wrap;
+    }
+
+    .form-actions,
+    .form-actions .right{
+        flex-direction:column;
+        align-items:stretch;
+        width:100%;
+    }
+
+    .form-actions .btn,
+    .view-actions .btn,
+    .view-actions form{
+        width:100%;
+        box-sizing:border-box;
+    }
+
+    .view-actions{
+        flex-direction:column;
+    }
+
+    .tool-row > *,
+    .tool-row .btn{
+        width:100%;
+    }
+
+    .search-strip{
+        grid-template-columns:1fr;
+    }
+
+    .archive-columns{
+        display:none;
+    }
+
+    .archive-row{
+        gap:6px;
+    }
+
+    .macro-block,
+    .conclusion-card{
+        padding:16px;
+    }
+
+    .macro-photo .photo-drop{
+        max-width:none;
+        height:220px;
+    }
+
+    .photo-drop{
+        text-align:center;
+        padding:0 12px;
+    }
+
+    .header-chip{
+        display:flex;
+        white-space:normal;
+        line-height:1.4;
+    }
+
+    .top-bar{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .data-table td{
+        padding:8px 6px;
+        word-break:break-word;
+    }
+
+    .data-table td:first-child{
+        width:42%;
+    }
+
+    .editor-backdrop{
+        padding:8px;
+    }
+
+    .editor{
+        padding:16px;
+        border-radius:18px;
+    }
+
+    .editor-tools,
+    .editor-tools div{
+        width:100%;
+    }
+
+    .editor-tools .btn{
+        flex:1 1 auto;
+    }
+
+    .logo-preview{
+        width:100%;
+        max-width:260px;
+    }
+
+    .history-card{
+        position:static;
+    }
+
+    /* ---------- Результат анализа ---------- */
+
+    .result-page{
+        padding:16px 16px 32px;
+    }
+
+    .top-panel{
+        flex-direction:column;
+        align-items:stretch;
+        gap:14px;
+    }
+
+    .top-actions{
+        display:grid;
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:8px;
+    }
+
+    .download-btn,
+    .share-btn{
+        padding:10px 6px;
+        font-size:13px;
+    }
+
+    .image-card,
+    .description-card,
+    .findings-card,
+    .ai-card{
+        padding:18px;
+        border-radius:18px;
+    }
+
+    .viewer{
+        height:340px;
+    }
+
+    .viewer-image{
+        max-width:100%;
+        max-height:320px;
+    }
+
+    .arrow{
+        width:42px;
+        height:42px;
+        font-size:26px;
+    }
+
+    .close{
+        top:10px;
+        right:18px;
+    }
+
+    .protocol-actions-buttons button{
+        min-width:0;
+        flex:1 1 100%;
+    }
+
+    /* ---------- Архив исследований ---------- */
+
+    body.page-cases{
+        padding:76px 16px 24px;
+    }
+
+    .page-cases .title{
+        font-size:26px;
+    }
+
+    .page-cases .results{
+        grid-template-columns:minmax(0, 1fr);
+        gap:16px;
+    }
+
+    .page-cases .card{
+        padding:18px;
+    }
+
+    .page-cases .info{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:10px;
+    }
+
+    .page-cases .info-box{
+        overflow-wrap:anywhere;
+    }
+
+    .page-cases .search-box{
+        padding:16px;
+    }
+
+    .page-cases .patient{
+        font-size:21px;
+    }
+
+    /* ---------- Консультанты ---------- */
+
+    body.page-consultants{
+        padding:76px 16px 24px;
+    }
+
+    .page-consultants h1{
+        font-size:24px;
+        margin-bottom:20px;
+    }
+
+    .page-consultants .search-panel{
+        flex-wrap:wrap;
+        overflow:visible;
+    }
+
+    .page-consultants .search-panel input,
+    .page-consultants .search-panel select,
+    .page-consultants .search-panel button{
+        width:100% !important;
+        box-sizing:border-box;
+    }
+
+    .page-consultants .consultants-grid{
+        grid-template-columns:1fr;
+    }
+
+    body.page-admin-consultants{
+        padding:20px 16px;
+    }
+
+    .page-admin-consultants .card{
+        padding:18px;
+    }
+
+    .page-admin-consultants .buttons{
+        flex-wrap:wrap;
+    }
+
+    /* ---------- Регистрация консультанта ---------- */
+
+    .consultant-container{
+        grid-template-columns:minmax(0, 1fr);
+        padding:76px 16px 32px;
+        gap:20px;
+        box-sizing:border-box;
+    }
+
+    .consultant-container > *{
+        min-width:0;
+        box-sizing:border-box;
+    }
+
+    #other-fields{
+        width:100%;
+    }
+
+    .other-specialty-input{
+        width:100%;
+    }
+
+    .photo-card,
+    .upload-photo,
+    .photo-button{
+        max-width:100%;
+        box-sizing:border-box;
+    }
+
+    .consultant-container .left-column,
+    .consultant-container .right-column{
+        width:auto;
+    }
+
+    .consultant-container .right-column{
+        position:static;
+        padding:20px;
+    }
+
+    .consultant-container .grid{
+        grid-template-columns:1fr;
+    }
+
+    .consultant-container .specialization-grid{
+        grid-template-columns:1fr 1fr;
+        gap:12px;
+    }
+
+    .center-column h1{
+        font-size:28px;
+    }
+
+    .photo-card{
+        padding:20px;
+    }
+}

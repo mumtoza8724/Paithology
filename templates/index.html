@@ -384,13 +384,15 @@ stroke-width="2">
 
                 <h2>
 
-                    Перетащите изображения сюда
+                    <span class="touch-hide">Перетащите изображения сюда</span>
+                    <span class="touch-only">Снимки гистопрепарата</span>
 
                 </h2>
 
                 <p>
 
-                    или нажмите для выбора файлов
+                    <span class="touch-hide">или нажмите для выбора файлов</span>
+                    <span class="touch-only">Сфотографируйте препарат камерой телефона или выберите готовые файлы</span>
 
                 </p>
 
@@ -419,6 +421,27 @@ accept=".jpg,.jpeg,.png,.tif,.tiff,.svs,.ndpi"
 >
 
             </div>
+
+            <!-- Телефон: снимок камерой или выбор файлов -->
+            <div class="capture-row camera-only">
+
+                <button type="button" class="capture-btn" id="camera-btn">
+                    <i class="bi bi-camera"></i> Сделать фото
+                </button>
+
+                <button type="button" class="capture-btn capture-btn-ghost" id="pick-btn">
+                    <i class="bi bi-folder2-open"></i> Выбрать файлы
+                </button>
+
+            </div>
+
+            <input
+                type="file"
+                id="camera-input"
+                accept="image/*"
+                capture="environment"
+                hidden
+            >
 
         </div>
 
@@ -536,6 +559,36 @@ let selectedFiles = [];
 /* клик по зоне */
 
 dropZone.onclick = () => input.click();
+
+
+/* камера телефона: каждый снимок получает своё имя,
+   иначе телефоны называют все фото одинаково (image.jpg) */
+
+const cameraInput = document.getElementById("camera-input");
+
+document.getElementById("camera-btn").onclick = () => cameraInput.click();
+
+document.getElementById("pick-btn").onclick = () => input.click();
+
+cameraInput.addEventListener("change", function(){
+
+    const shots = Array.from(this.files).map(function(file, index){
+
+        const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+
+        const ext = (file.type === "image/png") ? "png" : "jpg";
+
+        return new File(
+            [file],
+            "photo_" + stamp + "_" + (selectedFiles.length + index + 1) + "." + ext,
+            { type: file.type || "image/jpeg" }
+        );
+    });
+
+    if (shots.length) addFiles(shots);
+
+    this.value = "";
+});
 
 
 /* выбор файлов */

@@ -276,7 +276,7 @@
     }
 
     function setupPhotoSlot(slot, existing) {
-        const input = slot.querySelector("input[type=file]");
+        const input = slot.querySelector("input[type=file]:not([data-photo-camera])");
         const existingInput = slot.querySelector("[data-photo-existing]");
         const drop = slot.querySelector("[data-photo-drop]");
         const buttons = slot.querySelector("[data-photo-buttons]");
@@ -332,6 +332,22 @@
             original = file;
             edit(file);
         });
+
+        // Телефон: снимок камерой сразу открывает редактор поворота и обрезки
+        const camera = slot.querySelector("[data-photo-camera]");
+        const take = slot.querySelector("[data-photo-take]");
+        const pick = slot.querySelector("[data-photo-pick]");
+        if (camera && take) {
+            take.addEventListener("click", () => camera.click());
+            camera.addEventListener("change", () => {
+                const file = camera.files[0];
+                camera.value = "";
+                if (!file) return;
+                original = file;
+                edit(file);
+            });
+        }
+        if (pick) pick.addEventListener("click", () => input.click());
 
         slot.querySelector("[data-photo-edit]").addEventListener("click", async () => {
             if (original || input.files[0]) return edit(original || input.files[0]);
