@@ -179,9 +179,9 @@ def test_owner_can_download_report_without_public_file(two_users):
     assert response.status_code == 200
     assert response.data[:2] == b"PK"
     assert "attachment" in response.headers["Content-Disposition"]
-    assert f"report_{two_users['case_id']}.docx" in response.headers[
-        "Content-Disposition"
-    ]
+    # Имя файла «ФИО номер», как у протоколов
+    from urllib.parse import quote
+    assert quote("Пациент Владельца") in response.headers["Content-Disposition"]
 
     # Отчёт не записывается в публичную папку static
     assert not os.path.exists(os.path.join("static", "report.docx"))

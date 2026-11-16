@@ -15,10 +15,10 @@ from model import analyze
 from database import (
     db,
     Case,
+    CaseDetails,
     Consultant,
     User
 )
-from doc_generator import create_doc
 from qr_generator import create_qr
 import protocols
 import protocol_store
@@ -504,9 +504,15 @@ def home():
 
     lab_worker = request.form.get("lab_worker")
 
-    material_color = request.form.get("material_color")
-    material_size = request.form.get("material_size")
-    material_consistency = request.form.get("material_consistency")
+    # Размеры, цвет и консистенция теперь вводятся в первом макроописании
+    material_color = request.form.get("material_color") or request.form.get("mb-0-color")
+    material_size = request.form.get("material_size") or request.form.get("mb-0-size")
+    material_consistency = request.form.get("material_consistency") or request.form.get("mb-0-consistency")
+
+    try:
+        macro_blocks = protocols.parse_macro_blocks(request.form)
+    except protocols.ProtocolError:
+        macro_blocks = []
 
     (
         description,
@@ -579,10 +585,27 @@ def home():
 
     db.session.commit()
 
+    # Макроописания, язык документа и язык клинического диагноза (для протокола)
+    doc_lang = request.form.get("doc_lang")
+    clinical_lang = request.form.get("clinical_lang")
+
+    db.session.add(CaseDetails(
+        case_id=new_case.id,
+        data=json.dumps({
+            "doc_lang": doc_lang if doc_lang in protocols.DOC_LANGS else "ru",
+            "clinical_lang": clinical_lang if clinical_lang in protocols.SOURCE_LANGS else "ru",
+            "macro_blocks": macro_blocks,
+        }, ensure_ascii=False),
+    ))
+
+    db.session.commit()
+
 
     return render_template(
 
         "result.html",
+
+        case_id=new_case.id,
 
         result=result,
 
@@ -717,53 +740,75 @@ def delete_case(id):
 
     return redirect(url_for("cases"))
 
-@app.route("/report/<int:id>")
+@app.route("/report/<int:id>", methods=["GET", "POST"])
 @login_required
 def report(id):
 
+    """Отчёт по исследованию ИИ-анализа в формате протокола (DOCX)."""
+
     case = get_own_case_or_404(id)
 
-    image_path = ""
+    header = None
+    consultant_title = consultant_name = ""
 
-    if case.images:
-        image_path = case.images.split(",")[0]
+    # POST: шапка лаборатории и подпись из настроек браузера
+    if request.method == "POST":
+        try:
+            header = {
+                "org": protocols.limited(request.form.get("header_org")),
+                "form": protocols.limited(request.form.get("header_form")),
+                "address": protocols.limited(request.form.get("header_address")),
+                "logo": protocols.process_image(
+                    protocols.read_upload(request.files.get("header_logo")),
+                    max_side=600, keep_alpha=True,
+                ),
+            }
+        except protocols.ProtocolError as e:
+            return jsonify(error=str(e)), 400
+        consultant_title = protocols.limited(request.form.get("consultant_title"))
+        consultant_name = protocols.limited(request.form.get("consultant_name"))
 
-    # Отчёт собирается в памяти и не сохраняется в публичной папке static
-    buffer = io.BytesIO()
+    data = protocol_store.case_document_data(case, header, consultant_title, consultant_name)
 
-    create_doc(
-        medical_center=case.medical_center,
-        patient_name=case.patient_name,
-        research_number=case.research_number,
-        admission_date=case.admission_date,
-        gender=case.gender,
-        birth_date=case.birth_date,
-        operation_type=case.operation_type,
-        organ=case.organ,
-        clinical=case.clinical,
-        doctor=case.doctor,
-        slides=case.slides,
-        cassettes=case.cassettes,
-        stain_method=case.stain_method,
-        lab_worker=case.lab_worker,
-        result_date=case.result_date,
-        material_color=case.material_color,
-        material_size=case.material_size,
-        material_consistency=case.material_consistency,
-        image_path=image_path,
-        description=case.description,
-        conclusion=case.conclusion,
-        output=buffer
-    )
+    output = request.values.get("format", "docx")
+    output = output if output in ("docx", "pdf") else "docx"
 
-    buffer.seek(0)
+    content = protocols.build_docx(data) if output == "docx" else protocols.build_pdf(data)
 
-    return send_file(
-        buffer,
+    response = send_file(
+        io.BytesIO(content),
         as_attachment=True,
-        download_name=f"report_{case.id}.docx",
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        download_name=protocols.file_name(data, output),
+        mimetype=(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            if output == "docx" else "application/pdf"
+        ),
     )
+
+    response.headers["Cache-Control"] = "no-store"
+
+    return response
+
+
+@app.route("/cases/<int:id>/protocol", methods=["POST"])
+@login_required
+def case_to_protocol(id):
+
+    """«Оформить протокол»: новый протокол из исследования ИИ-анализа."""
+
+    case = get_own_case_or_404(id)
+
+    kind = request.form.get("kind")
+
+    if kind not in protocols.KINDS:
+        abort(400)
+
+    protocol = protocol_store.create_from_case(
+        g.user.id, case, kind, app.config["PROTOCOL_FOLDER"]
+    )
+
+    return redirect(url_for("protocol_edit", id=protocol.id, from_case=1))
+
 
 @app.route("/consultant-register", methods=["GET", "POST"])
 def consultant_register():
@@ -1145,11 +1190,29 @@ def render_protocol_form(kind, protocol=None):
         def image_url(name):
             return url_for("protocol_image", id=protocol.id, name=name) if name else None
 
+        blocks = data.get("macro_blocks")
+
+        if not blocks and data.get("macro_text"):
+            # Протокол, сохранённый до появления нескольких макроописаний
+            legacy = data.get("macro_inputs", {})
+            blocks = [{
+                "lang": legacy.get("source_lang", "ru"),
+                "size": legacy.get("macro_size", ""),
+                "color": legacy.get("macro_color", ""),
+                "consistency": legacy.get("macro_consistency", ""),
+                "work": legacy.get("macro_work", ""),
+                "archive": legacy.get("macro_archive", ""),
+                "notes": legacy.get("macro_notes", ""),
+                "text": data["macro_text"],
+            }]
+
         initial = {
             "id": protocol.id,
             "lang": data["lang"],
+            "review": data.get("review", False),
             "fields": data["fields"],
             "macro_inputs": data.get("macro_inputs", {}),
+            "macro_blocks": blocks or [],
             "macro_text": data["macro_text"],
             "marking_text": data["marking_text"],
             "macro_photo": {"name": data["macro_photo"], "url": image_url(data["macro_photo"])}
@@ -1184,6 +1247,21 @@ def render_protocol_form(kind, protocol=None):
         diagnoses=protocols.DIAGNOSES,
         note=protocols.NOTE_RU,
     )
+
+
+@app.context_processor
+def protocol_choices():
+
+    # Списки выбора для общих полей протокола (форма протокола и главная страница)
+    return {
+        "choice_stains": list(protocols.STAIN_METHODS),
+        "choice_colors": list(protocols.COLORS),
+        "choice_consistencies": list(protocols.CONSISTENCIES),
+        "choice_work": list(protocols.WORK_TAKEN),
+        "choice_archive": list(protocols.ARCHIVE),
+        "choice_source_langs": protocols.SOURCE_LANGS,
+        "choice_target_langs": protocols.TARGET_LANGS,
+    }
 
 
 @app.route("/protocols/new/<kind>")
@@ -1291,6 +1369,23 @@ def protocol_generate_macro():
     lang = json_text(payload, "doc_lang")
     lang = lang if lang in protocols.DOC_LANGS else "ru"
 
+    # Одно макроописание из нескольких (например, для одного органа)
+    if isinstance(payload.get("block"), dict) and payload.get("kind") in protocols.KINDS:
+
+        block = {
+            name: json_text(payload["block"], name, 2000 if name != "notes" else protocols.MAX_TEXT)
+            for name in protocols.MACRO_BLOCK_FIELDS
+        }
+
+        start = payload.get("start")
+        start = start if isinstance(start, int) and 0 < start < 1000 else 1
+
+        text, notice, count = protocols.generate_macro_block(
+            payload["kind"], block, lang, start, payload.get("intro") is not False
+        )
+
+        return jsonify(text=text, notice=notice, count=count)
+
     if payload.get("kind") == "small":
 
         text, notice = protocols.generate_macro_small(
@@ -1319,6 +1414,32 @@ def protocol_generate_macro():
         return jsonify(text=text, marking=marking, notice=notice)
 
     return jsonify(error="Неизвестный тип протокола"), 400
+
+
+@app.route("/protocols/generate/marking", methods=["POST"])
+@login_required
+def protocol_generate_marking():
+
+    payload = request.get_json(silent=True) or {}
+
+    return jsonify(marking=protocols.generate_marking(json_text(payload, "notes")))
+
+
+@app.route("/protocols/generate/clinical", methods=["POST"])
+@login_required
+def protocol_generate_clinical():
+
+    payload = request.get_json(silent=True) or {}
+
+    lang = json_text(payload, "doc_lang")
+    lang = lang if lang in protocols.DOC_LANGS else "ru"
+
+    source = json_text(payload, "source_lang")
+    source = source if source in protocols.SOURCE_LANGS else "ru"
+
+    text, notice = protocols.generate_clinical(json_text(payload, "text", 2000), source, lang)
+
+    return jsonify(text=text, notice=notice)
 
 
 @app.route("/protocols/generate/micro", methods=["POST"])

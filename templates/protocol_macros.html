@@ -1,0 +1,150 @@
+{# Общие поля протокола: форма протокола и главная страница (ИИ-анализ) #}
+
+{% macro calendar_svg() -%}
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+    <path d="M3 10H21M8 3V7M16 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{%- endmacro %}
+
+
+{# Поле даты, в которое можно и ввести текст («1959 г», «58 лет»), и выбрать дату в календаре #}
+{% macro date_or_text(name, placeholder, icon="bi-cake2", value="") -%}
+<div class="input-group calendar-group">
+    <span class="icon"><i class="bi {{ icon }}"></i></span>
+    <input type="text" name="{{ name }}" placeholder="{{ placeholder }}" value="{{ value }}" data-calendar-text>
+    <button type="button" class="calendar-btn" data-calendar-open title="Выбрать дату в календаре">
+        {{ calendar_svg() }}
+    </button>
+    <input type="date" class="calendar-proxy" data-calendar-proxy tabindex="-1" aria-hidden="true">
+</div>
+{%- endmacro %}
+
+
+{# Клинический диагноз с оформлением и переводом #}
+{% macro clinical_field(value="") -%}
+<div class="clinical-block full">
+    <div class="input-group">
+        <span class="icon"><i class="bi bi-clipboard2-pulse"></i></span>
+        <input type="text" name="clinical" placeholder="Клинический диагноз" value="{{ value }}" data-clinical-input>
+    </div>
+    <div class="tool-row">
+        <select name="clinical_lang" data-clinical-lang>
+            {% for code, label in choice_source_langs.items() %}
+            <option value="{{ code }}" {% if code == 'ru' %}selected{% endif %}>Язык ввода: {{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" class="btn btn-generate btn-small" data-clinical-generate>
+            <i class="bi bi-stars"></i> Оформить / перевести
+        </button>
+    </div>
+    <div class="notice" data-clinical-notice></div>
+</div>
+{%- endmacro %}
+
+
+{# Выбор языка документа #}
+{% macro doc_lang_select() -%}
+<div class="input-group">
+    <span class="icon"><i class="bi bi-translate"></i></span>
+    <select name="doc_lang" id="doc-lang">
+        {% for code, label in choice_target_langs.items() %}
+        <option value="{{ code }}">Язык документа: {{ label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}
+
+
+{# Несколько макроописаний (например, по одному на орган) #}
+{% macro macro_blocks(kind) -%}
+<div data-macro-blocks data-kind="{{ kind }}">
+
+    <div class="macro-list" data-macro-list></div>
+
+    <button type="button" class="btn add-conclusion" data-add-macro>
+        <i class="bi bi-plus-lg"></i> Добавить макроописание (ещё один орган)
+    </button>
+
+    <template data-macro-template>
+        <div class="macro-block" data-macro-block>
+
+            <div class="conclusion-head">
+                <h3>Макроописание <span data-number></span></h3>
+                <button type="button" class="btn btn-danger btn-small" data-remove>
+                    <i class="bi bi-x-lg"></i> Убрать
+                </button>
+            </div>
+
+            {% if kind == 'small' %}
+            <div class="form-grid">
+                <div class="input-group">
+                    <span class="icon"><i class="bi bi-rulers"></i></span>
+                    <input type="text" data-field="size" placeholder="Размеры (например, 1,0х0,3 см)">
+                </div>
+                <div class="input-group">
+                    <span class="icon"><i class="bi bi-droplet"></i></span>
+                    <input list="colors" data-field="color" placeholder="Цвет (например, белесоватого)">
+                </div>
+                <div class="input-group">
+                    <span class="icon"><i class="bi bi-circle-square"></i></span>
+                    <input list="consistencies" data-field="consistency" placeholder="Консистенция (например, мягкой)">
+                </div>
+                <div class="input-group">
+                    <span class="icon"><i class="bi bi-check2-square"></i></span>
+                    <select data-field="work">
+                        {% for value in choice_work %}
+                        <option value="{{ value }}">Взят в работу {{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="input-group">
+                    <span class="icon"><i class="bi bi-archive"></i></span>
+                    <select data-field="archive">
+                        {% for value in choice_archive %}
+                        <option value="{{ value }}">{{ value|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="tool-row">
+                <select data-field="lang">
+                    {% for code, label in choice_source_langs.items() %}
+                    <option value="{{ code }}" {% if code == 'ru' %}selected{% endif %}>Наброски на языке: {{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <label class="field-label">
+                {% if kind == 'small' %}Наброски (дополнительно к размерам, цвету и консистенции){% else %}Наброски — по одному объекту на строку{% endif %}
+            </label>
+            <textarea data-field="notes"
+                      placeholder="{% if kind == 'small' %}например: 3 фрагмента, на разрезе однородная{% else %}фрагмент молочной железы 7,0х5,5 см, желтоватый, мягкий&#10;край резекции&#10;лимфоузлы от 0,5 до 2,0 см{% endif %}"></textarea>
+
+            <button type="button" class="btn btn-generate" data-generate>
+                <i class="bi bi-stars"></i> Сгенерировать описание
+            </button>
+
+            <div class="notice" data-notice></div>
+
+            <label class="field-label">Макроописание в документе (можно редактировать)</label>
+            <textarea data-field="text" placeholder="Нажмите «Сгенерировать описание» или введите текст вручную"></textarea>
+
+        </div>
+    </template>
+
+</div>
+{%- endmacro %}
+
+
+{# Списки для подсказок #}
+{% macro datalists(diagnoses=None) -%}
+<datalist id="stains">{% for value in choice_stains %}<option value="{{ value }}">{% endfor %}</datalist>
+<datalist id="colors">{% for value in choice_colors %}<option value="{{ value }}">{% endfor %}</datalist>
+<datalist id="consistencies">{% for value in choice_consistencies %}<option value="{{ value }}">{% endfor %}</datalist>
+{% if diagnoses %}
+<datalist id="diagnoses">{% for value in diagnoses %}<option value="{{ value }}">{% endfor %}</datalist>
+{% endif %}
+{%- endmacro %}

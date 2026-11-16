@@ -23,7 +23,7 @@
 
     <h1 class="page-title">Настройки</h1>
 
-    <p class="page-subtitle">Шапка лаборатории для патогистологических протоколов</p>
+    <p class="page-subtitle">Шапка лаборатории, значения по умолчанию и папка для протоколов</p>
 
     <div class="glass-card">
 
@@ -69,6 +69,71 @@
 
     </div>
 
+    <div class="glass-card">
+
+        <div class="card-heading">
+            <h2><i class="bi bi-bookmark-check"></i> Значения по умолчанию</h2>
+        </div>
+
+        <p class="hint">Подставляются в каждый новый протокол и на главной странице; в протоколе их можно изменить.</p>
+
+        <div class="form-grid" id="defaults-form">
+            <div class="input-group">
+                <span class="icon"><i class="bi bi-eyedropper"></i></span>
+                <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
+            </div>
+            <div class="input-group">
+                <span class="icon"><i class="bi bi-palette"></i></span>
+                <input list="stains" name="stain_method" placeholder="Метод окраски">
+            </div>
+            <div class="input-group">
+                <span class="icon"><i class="bi bi-award"></i></span>
+                <input type="text" name="consultant_title" placeholder="Должность консультанта (например, Консультант, д.м.н. профессор)">
+            </div>
+            <div class="input-group">
+                <span class="icon"><i class="bi bi-person-check"></i></span>
+                <input type="text" name="consultant_name" placeholder="ФИО консультанта">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <span></span>
+            <div class="right">
+                <button type="button" class="btn btn-primary" id="d-save">
+                    <i class="bi bi-check-lg"></i> Сохранить значения
+                </button>
+            </div>
+        </div>
+
+        <div class="status-line" id="d-status"></div>
+
+    </div>
+
+    <div class="glass-card">
+
+        <div class="card-heading">
+            <h2><i class="bi bi-folder2-open"></i> Папка для сохранения протоколов</h2>
+        </div>
+
+        <p class="hint">
+            Скачанные протоколы будут сразу сохраняться в выбранную папку компьютера с именем
+            «ФИО номер» (например, «Тестова Мария 6438-40-26.docx»). Работает в Chrome и Edge
+            на компьютере; браузер может один раз за сеанс спросить разрешение на запись.
+        </p>
+
+        <div class="tool-row">
+            <button type="button" class="btn btn-primary" id="f-choose">
+                <i class="bi bi-folder-plus"></i> Выбрать папку
+            </button>
+            <button type="button" class="btn btn-ghost" id="f-forget">
+                <i class="bi bi-x-lg"></i> Не сохранять в папку
+            </button>
+        </div>
+
+        <div class="status-line" id="f-status"></div>
+
+    </div>
+
     <div class="info-banner">
         <i class="bi bi-info-circle"></i>
         <div>
@@ -80,8 +145,63 @@
 
 </div>
 
+<datalist id="stains">{% for value in choice_stains %}<option value="{{ value }}">{% endfor %}</datalist>
+
+<script src="{{ url_for('static', filename='protocol-fields.js') }}"></script>
+
 <script>
 (function () {
+
+    // ---------- Значения по умолчанию ----------
+
+    const PF = window.ProtocolFields;
+    const defaultsForm = document.getElementById("defaults-form");
+    const saved = PF.readDefaults();
+
+    defaultsForm.querySelectorAll("input").forEach((input) => { input.value = saved[input.name] || ""; });
+
+    document.getElementById("d-save").addEventListener("click", () => {
+        const values = {};
+        defaultsForm.querySelectorAll("input").forEach((input) => { values[input.name] = input.value.trim(); });
+        const status = document.getElementById("d-status");
+        status.textContent = PF.writeDefaults(values)
+            ? "Сохранено: будет подставляться в новые протоколы."
+            : "Не удалось сохранить в этом браузере.";
+    });
+
+    // ---------- Папка для протоколов ----------
+
+    const folderStatus = document.getElementById("f-status");
+
+    async function showFolder() {
+        if (!PF.folderSupported) {
+            folderStatus.textContent = "Этот браузер не умеет сохранять в выбранную папку. Файлы будут скачиваться обычным способом с именем «ФИО номер». Для автосохранения откройте приложение в Chrome или Edge на компьютере.";
+            document.getElementById("f-choose").disabled = true;
+            return;
+        }
+        const folder = await PF.getFolder();
+        folderStatus.textContent = folder && PF.readDefaults().autosave
+            ? `Протоколы сохраняются в папку «${folder.name}».`
+            : "Папка не выбрана: файлы скачиваются в папку загрузок браузера.";
+    }
+
+    document.getElementById("f-choose").addEventListener("click", async () => {
+        try {
+            await PF.chooseFolder();
+            PF.writeDefaults({ autosave: true });
+        } catch (e) {
+            // Пользователь закрыл окно выбора папки
+        }
+        showFolder();
+    });
+
+    document.getElementById("f-forget").addEventListener("click", async () => {
+        await PF.forgetFolder();
+        PF.writeDefaults({ autosave: false });
+        showFolder();
+    });
+
+    showFolder();
 
     const KEY = "paithology.labHeader";
     const fields = { org: "h-org", form: "h-form", address: "h-address" };

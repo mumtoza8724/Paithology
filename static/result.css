@@ -441,3 +441,53 @@ color:#c9b8ff;
 
 }
 
+
+
+/* Оформить протокол из анализа */
+
+.protocol-actions{
+    margin-top:18px;
+    padding:20px 22px;
+    border-radius:18px;
+    background:rgba(141, 60, 255, .12);
+    border:1px solid rgba(141, 60, 255, .45);
+}
+
+.protocol-actions-title{
+    font-size:18px;
+    font-weight:600;
+}
+
+.protocol-actions p{
+    margin:8px 0 14px;
+    color:#cfcfff;
+    line-height:1.5;
+}
+
+.protocol-actions-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.protocol-actions-buttons button{
+    flex:1;
+    min-width:220px;
+    padding:14px 18px;
+    border:none;
+    border-radius:14px;
+    background:#8d3cff;
+    color:white;
+    font-size:15px;
+    cursor:pointer;
+    font-family:inherit;
+}
+
+.protocol-actions-buttons button:hover{
+    box-shadow:0 0 18px rgba(184, 132, 255, .6);
+}
+
+.report-status{
+    margin-top:12px;
+    color:#cfcfff;
+}

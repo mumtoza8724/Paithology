@@ -120,12 +120,19 @@ def diff(previous, current):
             changes.append(title)
 
     for key, title in (
+        ("review", "Пересмотр готового среза"),
         ("lang", "Язык документа"),
         ("macro_text", "Макроскопическое описание"),
         ("marking_text", "Маркировка"),
         ("macro_photo", "Фото макропрепарата"),
     ):
-        if previous.get(key) != current.get(key):
+        old_value, new_value = previous.get(key), current.get(key)
+
+        # В протоколах, сохранённых до появления пересмотра, поля review нет
+        if key == "review":
+            old_value, new_value = bool(old_value), bool(new_value)
+
+        if old_value != new_value:
             changes.append(title)
 
     old, new = previous["conclusions"], current["conclusions"]
@@ -149,7 +156,7 @@ def diff(previous, current):
     return changes
 
 
-def save(user_id, parsed, base):
+def save(user_id, parsed, base, action=None):
 
     """Создаёт или обновляет протокол. Возвращает (протокол, были ли изменения)."""
 
@@ -195,8 +202,10 @@ def save(user_id, parsed, base):
         "storage": storage,
         "kind": protocol.kind,
         "lang": parsed["lang"],
+        "review": parsed["review"],
         "fields": parsed["fields"],
         "macro_inputs": parsed["macro_inputs"],
+        "macro_blocks": parsed["macro_blocks"],
         "macro_text": parsed["macro_text"],
         "marking_text": parsed["marking_text"],
         "macro_photo": resolve_image(
@@ -249,7 +258,7 @@ def save(user_id, parsed, base):
         protocol_id=pid,
         user_id=user_id,
         created_at=now,
-        action="Создан" if previous is None else "Изменён",
+        action=action or ("Создан" if previous is None else "Изменён"),
         changes=json.dumps(changes, ensure_ascii=False),
         data=protocol.data,
     ))
@@ -315,6 +324,7 @@ def document_data(protocol, base):
     return {
         "kind": data["kind"],
         "lang": data["lang"],
+        "review": data.get("review", False),
         "fields": data["fields"],
         "macro_text": data["macro_text"],
         "marking_text": data["marking_text"],
@@ -382,3 +392,138 @@ def delete(protocol, base):
 
     # Папка протокола (по случайному ключу) содержит только его собственные фото
     shutil.rmtree(folder, ignore_errors=True)
+
+
+# ---------- Исследование ИИ-анализа → протокол ----------
+
+CASE_FIELDS = (
+    "research_number", "admission_date", "medical_center", "patient_name",
+    "gender", "birth_date", "operation_type", "clinical", "doctor", "slides",
+    "cassettes", "stain_method", "lab_worker", "result_date",
+)
+
+
+def case_details(case):
+
+    from database import CaseDetails
+
+    row = CaseDetails.query.filter_by(case_id=case.id).first()
+
+    return json.loads(row.data) if row and row.data else {}
+
+
+def case_image(case):
+
+    """Первый снимок исследования (очищенный JPEG) или None."""
+
+    for path in (case.images or "").split(","):
+
+        path = path.strip().replace("\\", "/")
+
+        if not path:
+            continue
+
+        try:
+            with open(path, "rb") as f:
+                return protocols.process_image(f.read())
+        except (OSError, protocols.ProtocolError):
+            return None
+
+    return None
+
+
+def case_macro(case, details):
+
+    """Макроописания исследования: из блоков главной страницы или из старых полей."""
+
+    blocks = details.get("macro_blocks") or []
+
+    if blocks:
+        return blocks, "\n\n".join(b.get("text", "") for b in blocks if b.get("text"))
+
+    if any((case.material_size, case.material_color, case.material_consistency)):
+        text, _ = protocols.generate_macro_small(
+            case.material_size or "", case.material_color or "",
+            case.material_consistency or "", "", "", details.get("doc_lang", "ru"),
+        )
+        block = {
+            "lang": "ru", "size": case.material_size or "", "color": case.material_color or "",
+            "consistency": case.material_consistency or "", "work": "", "archive": "",
+            "notes": "", "text": text,
+        }
+        return [block], text
+
+    return [], ""
+
+
+def case_conclusion(case, image):
+
+    return {
+        "diagnosis": case.conclusion or "",
+        "icdo": protocols.suggest_icdo(case.conclusion or ""),
+        "micro": (case.description or "").strip(),
+        "image": image,
+        "image_existing": "",
+    }
+
+
+def case_fields(case):
+
+    fields = {name: (getattr(case, name, "") or "") for name in CASE_FIELDS}
+
+    # В ИИ-анализе вместо маркировки — орган
+    fields["marking"] = case.organ or ""
+
+    return fields
+
+
+def case_document_data(case, header=None, consultant_title="", consultant_name=""):
+
+    """Данные для build_docx/build_pdf: исследование ИИ-анализа в формате протокола."""
+
+    details = case_details(case)
+    _, macro_text = case_macro(case, details)
+
+    return {
+        "kind": "small",
+        "lang": details.get("doc_lang", "ru") if details.get("doc_lang") in protocols.DOC_LANGS else "ru",
+        "review": False,
+        "fields": case_fields(case),
+        "macro_text": macro_text,
+        "marking_text": "",
+        "macro_photo": None,
+        "conclusions": [case_conclusion(case, case_image(case))] if (case.conclusion or case.description) else [],
+        "consultant_title": consultant_title,
+        "consultant_name": consultant_name,
+        "header": header or {"org": "", "form": "", "address": "", "logo": None},
+    }
+
+
+def create_from_case(user_id, case, kind, base):
+
+    """Новый протокол из исследования ИИ-анализа; дальше его редактируют как обычный протокол."""
+
+    details = case_details(case)
+    blocks, macro_text = case_macro(case, details)
+
+    parsed = {
+        "protocol_id": None,
+        "kind": kind,
+        "lang": details.get("doc_lang", "ru") if details.get("doc_lang") in protocols.DOC_LANGS else "ru",
+        "review": False,
+        "fields": case_fields(case),
+        "macro_inputs": {"clinical_lang": details.get("clinical_lang", "ru")},
+        "macro_blocks": blocks,
+        "macro_text": macro_text,
+        "marking_text": "",
+        "macro_photo": None,
+        "macro_photo_existing": "",
+        "conclusions": [case_conclusion(case, case_image(case))] if (case.conclusion or case.description) else [],
+        "consultant_title": "",
+        "consultant_name": "",
+        "header": {"org": "", "form": "", "address": "", "logo": None},
+    }
+
+    protocol, _ = save(user_id, parsed, base, action="Создан из ИИ-анализа")
+
+    return protocol

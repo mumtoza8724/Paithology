@@ -48,17 +48,15 @@ class="back-btn"
 
 <div class="top-actions">
 
-<a
+<button type="button" class="download-btn" data-case-report="docx"
+        data-url="{{ url_for('report', id=case_id) }}" data-csrf="{{ csrf_token() }}">
+📄 Скачать отчёт DOCX
+</button>
 
-href="/report"
-
-class="download-btn"
-
->
-
-📄Скачать отчёт
-
-</a>
+<button type="button" class="download-btn" data-case-report="pdf"
+        data-url="{{ url_for('report', id=case_id) }}" data-csrf="{{ csrf_token() }}">
+📄 PDF
+</button>
 
 
 <button class="share-btn">
@@ -388,6 +386,19 @@ max="100"
     🩺 Отправить на консультацию
 </button>
 
+<form method="POST" action="{{ url_for('case_to_protocol', id=case_id) }}" class="protocol-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="protocol-actions-title">📝 Оформить протокол из этого анализа</div>
+    <p>Откроется редактор протокола с данными, заключением ИИ, микроописанием и снимком: там можно
+       перевести, исправить, добавить подпись и скачать DOCX или PDF.</p>
+    <div class="protocol-actions-buttons">
+        <button type="submit" name="kind" value="small">Малый биопсийный материал</button>
+        <button type="submit" name="kind" value="large">Большой операционный материал</button>
+    </div>
+</form>
+
+<p class="report-status" data-case-report-status></p>
+
 
 </div>
 
@@ -456,6 +467,9 @@ showImage();
 }
 
 </script>
+
+<script src="{{ url_for('static', filename='protocol-fields.js') }}"></script>
+<script>window.ProtocolFields.setupCaseReport(document);</script>
 
 </body>
 

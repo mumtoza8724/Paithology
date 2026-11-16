@@ -1,3 +1,4 @@
+{% import "protocol_macros.html" as pf with context %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -24,14 +25,18 @@
      data-kind="{{ kind }}"
      data-csrf="{{ csrf_token() }}"
      data-macro-url="{{ url_for('protocol_generate_macro') }}"
+     data-marking-url="{{ url_for('protocol_generate_marking') }}"
+     data-clinical-url="{{ url_for('protocol_generate_clinical') }}"
      data-micro-url="{{ url_for('protocol_generate_micro') }}"
      data-download-url="{{ url_for('protocol_download') }}"
-     data-save-url="{{ url_for('protocol_save') }}">
+     data-save-url="{{ url_for('protocol_save') }}"
+     data-from-case="{{ '1' if request.args.get('from_case') else '' }}">
 
     <h1 class="page-title">{{ title }}</h1>
 
     <p class="page-subtitle">
-        {% if protocol %}Редактирование протокола из архива{% else %}Патогистологическое заключение · DOCX или PDF{% endif %}
+        {% if protocol and request.args.get('from_case') %}Протокол создан из ИИ-анализа: проверьте данные, заключение и подпись
+        {% elif protocol %}Редактирование протокола из архива{% else %}Патогистологическое заключение · DOCX или PDF{% endif %}
     </p>
 
     <div class="page-actions">
@@ -62,10 +67,19 @@
 
 <section class="step" data-step="1">
 
+<div class="top-bar">
+    <button type="button" class="btn btn-ghost review-toggle" id="review-toggle" aria-pressed="false">
+        <i class="bi bi-arrow-repeat"></i> Пересмотр готового среза
+    </button>
+    <input type="hidden" name="review" id="review-input" value="0">
+    <div class="top-bar-lang">{{ pf.doc_lang_select() }}</div>
+</div>
+
 <div class="glass-card">
 
     <div class="card-heading">
         <h2><i class="bi bi-file-earmark-medical"></i> Данные исследования</h2>
+        <span class="review-badge" id="review-badge" hidden>Пересмотр готового среза</span>
     </div>
 
     <div class="form-grid">
@@ -102,10 +116,7 @@
             </div>
         </div>
 
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-cake2"></i></span>
-            <input type="text" name="birth_date" placeholder="Дата рождения / возраст (12.03.1967, 1967 г или 58 лет)">
-        </div>
+        {{ pf.date_or_text("birth_date", "Дата рождения / возраст (12.03.1967, 1967 г или 58 лет)") }}
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-scissors"></i></span>
@@ -118,14 +129,16 @@
                    placeholder="{% if kind == 'large' %}Маркировка материала: какие органы пришли, кол-во объектов{% else %}Маркировка материала, кол-во объектов{% endif %}">
         </div>
 
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-clipboard2-pulse"></i></span>
-            <input type="text" name="clinical" placeholder="Клинический диагноз">
-        </div>
+        {{ pf.clinical_field() }}
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-person-badge"></i></span>
             <input type="text" name="doctor" placeholder="ФИО лечащего врача">
+        </div>
+
+        <div class="input-group">
+            <span class="icon"><i class="bi bi-eyedropper"></i></span>
+            <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
         </div>
 
         <div class="input-group">
@@ -144,11 +157,6 @@
         </div>
 
         <div class="input-group">
-            <span class="icon"><i class="bi bi-eyedropper"></i></span>
-            <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
-        </div>
-
-        <div class="input-group">
             <span class="icon"><i class="bi bi-file-earmark-check"></i></span>
             <input type="text" name="result_date" placeholder="Дата выдачи результата" onfocus="this.type='date'">
         </div>
@@ -157,105 +165,23 @@
 
 </div>
 
-<div class="glass-card">
+<div class="glass-card" id="macro-card">
 
     <div class="card-heading">
         <h2><i class="bi bi-rulers"></i> Макроскопическое описание</h2>
     </div>
 
-{% if kind == 'small' %}
+    {{ pf.macro_blocks(kind) }}
 
-    <div class="form-grid">
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-rulers"></i></span>
-            <input type="text" id="m-size" name="macro_size" placeholder="Размеры (например, 1,0х0,3 см)">
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-droplet"></i></span>
-            <input list="colors" id="m-color" name="macro_color" placeholder="Цвет (например, белесоватого)">
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-circle-square"></i></span>
-            <input list="consistencies" id="m-consistency" name="macro_consistency" placeholder="Консистенция (например, мягкой)">
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-translate"></i></span>
-            <select name="doc_lang" id="doc-lang">
-                {% for code, label in target_langs.items() %}
-                <option value="{{ code }}">Язык документа: {{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-check2-square"></i></span>
-            <select id="m-work" name="macro_work">
-                {% for value in work_taken %}
-                <option value="{{ value }}">Взят в работу {{ value }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-archive"></i></span>
-            <select id="m-archive" name="macro_archive">
-                {% for value in archive %}
-                <option value="{{ value }}">{{ value|capitalize }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-    </div>
-
-{% else %}
-
-    <div class="form-grid">
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-translate"></i></span>
-            <select id="source-lang" name="source_lang">
-                {% for code, label in source_langs.items() %}
-                <option value="{{ code }}" {% if code == 'ru' %}selected{% endif %}>С языка: {{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="input-group">
-            <span class="icon"><i class="bi bi-arrow-right-circle"></i></span>
-            <select name="doc_lang" id="doc-lang">
-                {% for code, label in target_langs.items() %}
-                <option value="{{ code }}">На язык документа: {{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-    </div>
-
-    <label class="field-label" for="macro-notes">Наброски макроописания — по одному объекту на строку</label>
-    <textarea id="macro-notes" name="macro_notes"
-              placeholder="фрагмент молочной железы 7,0х5,5 см, желтоватый, мягкий, опухоль 1,0х1,0 см белесоватая&#10;край резекции&#10;лимфоузлы от 0,5 до 2,0 см, взят частично, есть архив"></textarea>
-
+{% if kind == 'large' %}
     <label class="field-label" for="marking-notes">Наброски маркировки</label>
     <textarea id="marking-notes" name="marking_notes" style="min-height:80px"
               placeholder="опухоль 1-2, линия резекции 3-4, лимфоузлы 5 6 7"></textarea>
 
-{% endif %}
-
-    <button type="button" class="btn btn-generate" id="generate-macro">
-        <i class="bi bi-stars"></i> Сгенерировать описание
+    <button type="button" class="btn btn-generate" id="generate-marking">
+        <i class="bi bi-stars"></i> Сгенерировать маркировку
     </button>
 
-    <div class="notice" id="macro-notice"></div>
-
-    <label class="field-label" for="macro-text">Макроскопическое описание в документе (можно редактировать)</label>
-    <textarea name="macro_text" id="macro-text"
-              placeholder="Нажмите «Сгенерировать описание» или введите текст вручную"></textarea>
-
-{% if kind == 'large' %}
     <label class="field-label" for="marking-text">Маркировка в документе (можно редактировать)</label>
     <textarea name="marking_text" id="marking-text" style="min-height:70px"
               placeholder="опухоль – 1-2, линия резекции – 3-4, лимфоузлы – 5-6-7."></textarea>
@@ -352,7 +278,15 @@
 
     </div>
 
-    <p class="hint">Печать и подпись в документ не вставляются: документ подписывается вручную.</p>
+    <p class="hint">
+        В документе строка консультанта печатается заглавными буквами внизу второй страницы.
+        Печать и подпись не вставляются: документ подписывается вручную.
+    </p>
+
+    <button type="button" class="btn btn-ghost btn-small" id="remember-defaults">
+        <i class="bi bi-bookmark-check"></i> Запомнить лаборанта, метод окраски и подпись для следующих протоколов
+    </button>
+    <span class="hint" id="defaults-status"></span>
 
     <label class="field-label">Примечание внизу документа</label>
     <div class="note-preview">{{ note }}</div>
@@ -377,6 +311,8 @@
 </div>
 
 <div class="status-line" id="download-status"></div>
+
+<p class="hint" id="folder-hint"></p>
 
 </section>
 
@@ -449,26 +385,13 @@
     </div>
 </div>
 
-<datalist id="stains">
-    {% for value in stains %}<option value="{{ value }}">{% endfor %}
-</datalist>
-
-<datalist id="colors">
-    {% for value in colors %}<option value="{{ value }}">{% endfor %}
-</datalist>
-
-<datalist id="consistencies">
-    {% for value in consistencies %}<option value="{{ value }}">{% endfor %}
-</datalist>
-
-<datalist id="diagnoses">
-    {% for value in diagnoses %}<option value="{{ value }}">{% endfor %}
-</datalist>
+{{ pf.datalists(diagnoses) }}
 
 {% if initial %}
 <script type="application/json" id="protocol-initial">{{ initial|tojson }}</script>
 {% endif %}
 
+<script src="{{ url_for('static', filename='protocol-fields.js') }}"></script>
 <script src="{{ url_for('static', filename='protocol.js') }}"></script>
 
 </body>

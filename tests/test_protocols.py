@@ -121,6 +121,8 @@ def download(client, fmt, data):
 
 def docx_text(content):
 
+    """Текст документа вместе с колонтитулами (примечание и консультант — в колонтитуле)."""
+
     document = Document(io.BytesIO(content))
 
     parts = [p.text for p in document.paragraphs]
@@ -128,6 +130,9 @@ def docx_text(content):
     for table in document.tables:
         for row in table.rows:
             parts.extend(cell.text for cell in row.cells)
+
+    for section in document.sections:
+        parts.extend(p.text for p in section.footer.paragraphs)
 
     return "\n".join(parts), document
 
@@ -337,7 +342,8 @@ def test_download_large_docx(app, doctor):
     assert response.status_code == 200
     assert response.mimetype.endswith("wordprocessingml.document")
     assert "no-store" in response.headers["Cache-Control"]
-    assert "protocol_1234" in response.headers["Content-Disposition"]
+    # Имя файла «ФИО номер»: полное имя в UTF-8 (filename*)
+    assert "%D0%A2%D0%B5%D1%81%D1%82%D0%BE%D0%B2%D0%B0" in response.headers["Content-Disposition"]
 
     text, document = docx_text(response.data)
 
@@ -348,7 +354,7 @@ def test_download_large_docx(app, doctor):
         "Микроскопическое описание:", "1) Синтетическое микроописание.",
         "Патогистологическое заключение:", "1. Протоковый инвазивный канцер G-2.",
         "МКБ-О код 8500/3.", "2. Линии резекции интактные.",
-        "Консультант, д.м.н.: ____________ Консультантов К.К.",
+        "КОНСУЛЬТАНТ, Д.М.Н.: ____________ КОНСУЛЬТАНТОВ К.К.",
         "окончательная постановка диагноза", "ООО «ТЕСТОВАЯ ЛАБОРАТОРИЯ»",
     ):
         assert expected in text, expected
@@ -516,6 +522,11 @@ def test_file_name_is_safe():
     assert "/" not in name and ".." not in name
     assert name.endswith(".pdf")
 
-    # Латиница: кириллица в имени загрузки поддерживается не всеми браузерами
-    assert protocols.file_name({"fields": {"research_number": "7883 Д/26"}}, "docx") == "protocol_7883_D_26.docx"
-    assert protocols.file_name({"fields": {"research_number": ""}}, "docx") == "protocol_paithology.docx"
+    # Имя «ФИО номер»; «/» в номере заменяется, запрещённые в именах файлов символы убираются
+    assert protocols.file_name(
+        {"fields": {"patient_name": "Тестов И", "research_number": "7883 Д/26"}}, "docx"
+    ) == "Тестов И 7883 Д-26.docx"
+    assert protocols.file_name(
+        {"fields": {"patient_name": 'Иванова: "А"*', "research_number": "1/2"}}, "pdf"
+    ) == "Иванова А 1-2.pdf"
+    assert protocols.file_name({"fields": {"patient_name": "", "research_number": ""}}, "docx") == "protocol.docx"

@@ -160,7 +160,9 @@ def test_edit_page_prefills_form(app, two_doctors):
 
     owner, _ = two_doctors
 
-    protocol_id = save(owner, protocol_form("large", macro_notes="наброски")).json["id"]
+    protocol_id = save(owner, protocol_form(
+        "large", **{"mb-0-notes": "наброски", "mb-0-text": "Текст блока", "mb-0-lang": "uz"}
+    )).json["id"]
 
     page = owner.get(f"/protocols/{protocol_id}/edit").get_data(as_text=True)
 
@@ -173,7 +175,9 @@ def test_edit_page_prefills_form(app, two_doctors):
     assert initial["id"] == protocol_id
     assert initial["fields"]["patient_name"] == "Тестова Мария"
     assert initial["conclusions"][0]["diagnosis"] == "Протоковый инвазивный канцер G-2"
-    assert initial["macro_inputs"]["macro_notes"] == "наброски"
+    assert initial["macro_blocks"][0]["notes"] == "наброски"
+    assert initial["macro_blocks"][0]["lang"] == "uz"
+    assert initial["macro_blocks"][0]["text"] == "Текст блока"
 
 
 # ---------- Фото ----------

@@ -458,9 +458,23 @@ color:white;
 
 <div class="buttons">
 
-<a href="{{ url_for('report', id=case.id) }}" class="btn doc">
+<button type="button" class="btn doc" data-case-report="docx"
+        data-url="{{ url_for('report', id=case.id) }}" data-csrf="{{ csrf_token() }}"
+        style="font-family:inherit">
     Скачать DOCX
-</a>
+</button>
+
+<button type="button" class="btn doc" data-case-report="pdf"
+        data-url="{{ url_for('report', id=case.id) }}" data-csrf="{{ csrf_token() }}"
+        style="font-family:inherit">
+    Скачать PDF
+</button>
+
+<form method="POST" action="{{ url_for('case_to_protocol', id=case.id) }}" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="kind" value="small">
+    <button type="submit" class="btn doc" style="font-family:inherit">Оформить протокол</button>
+</form>
 
 <a
 href="/cases"
@@ -496,6 +510,11 @@ style="font-family:inherit">
 </div>
 
 </div>
+
+<p data-case-report-status style="margin:16px 0 0;color:#cfcfff"></p>
+
+<script src="{{ url_for('static', filename='protocol-fields.js') }}"></script>
+<script>window.ProtocolFields.setupCaseReport(document);</script>
 
 </body>
 

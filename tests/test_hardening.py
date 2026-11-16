@@ -404,8 +404,13 @@ ENV_NAMES = [
 def isolated_app(tmp_path):
 
     # Копия приложения: тесты не создают и не трогают instance/ проекта
-    for name in ("app.py", "database.py", "doc_generator.py", "qr_generator.py", "protocols.py", "protocol_store.py"):
-        shutil.copy(os.path.join(ROOT, name), tmp_path / name)
+    # Все модули приложения из корня проекта, кроме нейросети (в тесте — заглушка)
+    # и скриптов обучения и проверки датасета
+    skip = {"model.py", "train_model.py", "efficientnet_train.py", "check_dataset.py", "fix_png.py"}
+
+    for name in os.listdir(ROOT):
+        if name.endswith(".py") and name not in skip:
+            shutil.copy(os.path.join(ROOT, name), tmp_path / name)
 
     shutil.copytree(os.path.join(ROOT, "templates"), tmp_path / "templates")
 

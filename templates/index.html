@@ -1,3 +1,4 @@
+{% import "protocol_macros.html" as pf with context %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -12,6 +13,8 @@
 
     <link rel="stylesheet"
 href="{{ url_for('static', filename='sidebar.css') }}">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
 
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -123,17 +126,7 @@ href="{{ url_for('static', filename='sidebar.css') }}">
 
 </div>
 
-<div class="input-group">
-    <span class="icon">
-    <i class="bi bi-cake2"></i>
-</span>
-
-    <input
-        type="text"
-        name="birth_date"
-        placeholder="Дата рождения"
-        onfocus="this.type='date'">
-</div>
+{{ pf.date_or_text("birth_date", "Дата рождения / возраст (12.03.1967, 1967 г или 58 лет)") }}
 
 <!-- 4 строка -->
 <div class="input-group">
@@ -170,15 +163,8 @@ href="{{ url_for('static', filename='sidebar.css') }}">
 </datalist>
 
 <!-- 5 строка -->
-<div class="input-group">
-    <span class="icon">
-    <i class="bi bi-clipboard2-pulse"></i>
-</span>
-
-    <input
-        type="text"
-        name="clinical"
-        placeholder="Клинический диагноз">
+<div class="protocol" style="display:contents">
+{{ pf.clinical_field() }}
 </div>
 
 <div class="input-group">
@@ -258,41 +244,20 @@ href="{{ url_for('static', filename='sidebar.css') }}">
         placeholder="ФИО лаборанта">
 </div>
 
-<div class="input-group">
-    <span class="icon">
-    <i class="bi bi-rulers"></i>
-</span>
+{{ pf.doc_lang_select() }}
 
-    <input
-        type="text"
-        name="material_size"
-        placeholder="Размер материала">
-</div>
-
-<!-- 9 строка -->
-<div class="input-group">
-    <span class="icon">
-    <i class="bi bi-droplet"></i>
-</span>
-
-    <input
-        type="text"
-        name="material_color"
-        placeholder="Цвет материала">
-</div>
-
-<div class="input-group">
-    <span class="icon">
-    <i class="bi bi-circle-square"></i>
-</span>
-
-    <input
-        type="text"
-        name="material_consistency"
-        placeholder="Консистенция материала">
-</div>
 <br>
     </div>
+
+<div class="protocol macro-main">
+
+    <div class="card-heading">
+        <h2><i class="bi bi-rulers"></i> Макроскопическое описание</h2>
+    </div>
+
+    {{ pf.macro_blocks("small") }}
+
+</div>
 
 <div class="upload-layout">
 
@@ -829,5 +794,27 @@ function renderFiles(){
 </form>
 </div>
 </div>
+
+<datalist id="colors">{% for value in choice_colors %}<option value="{{ value }}">{% endfor %}</datalist>
+<datalist id="consistencies">{% for value in choice_consistencies %}<option value="{{ value }}">{% endfor %}</datalist>
+
+<script src="{{ url_for('static', filename='protocol-fields.js') }}"></script>
+
+<script>
+// Общие поля протокола на главной: календарь, клинический диагноз,
+// несколько макроописаний и значения по умолчанию (лаборант, окраска)
+(function () {
+    const form = document.querySelector(".glass-card form");
+    const PF = window.ProtocolFields;
+    const csrf = form.elements.csrf_token.value;
+    const docLang = () => (form.elements.doc_lang ? form.elements.doc_lang.value : "ru");
+
+    PF.setupCalendars(form);
+    PF.setupClinical(form, { url: "{{ url_for('protocol_generate_clinical') }}", csrf, docLang });
+    PF.setupMacroBlocks(form, { url: "{{ url_for('protocol_generate_macro') }}", csrf, docLang });
+    PF.applyDefaults(form);
+})();
+</script>
+
 </body>
 </html>

@@ -172,3 +172,19 @@ class ProtocolRevision(db.Model):
     changes = db.Column(db.Text)
 
     data = db.Column(db.Text)
+
+
+class CaseDetails(db.Model):
+
+    """
+    Дополнительные данные исследования с главной страницы (ИИ-анализ),
+    которых нет в таблице Case: несколько макроописаний, язык документа и
+    язык ввода клинического диагноза. Отдельная таблица, чтобы не менять
+    существующую таблицу Case.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    case_id = db.Column(db.Integer, db.ForeignKey("case.id"), unique=True, index=True)
+
+    data = db.Column(db.Text)

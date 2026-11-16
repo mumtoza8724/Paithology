@@ -20,6 +20,8 @@ from xml.sax.saxutils import escape
 
 from PIL import Image, ImageOps
 
+import icdo
+
 
 KINDS = ("small", "large")
 
@@ -147,18 +149,6 @@ ICDO_CODES = {
     "фибромиома матки": "8890/0",
 }
 
-# Правила по ключевым словам для формулировок не из списка
-# (например, «Протоковый инвазивный канцер G-2»); порядок важен
-ICDO_KEYWORDS = [
-    (("муцинозн",), ("аденокарцином", "рак", "канцер", "карцином"), "8480/3"),
-    (("протоков",), ("рак", "канцер", "карцином"), "8500/3"),
-    (("долько",), ("рак", "канцер", "карцином"), "8520/3"),
-    (("базалиом",), (), "8090/3"),
-    (("базальноклеточн",), ("рак", "канцер", "карцином"), "8090/3"),
-    (("плоскоклеточн",), ("рак", "канцер", "карцином"), "8070/3"),
-    (("меланом",), (), "8720/3"),
-    (("аденокарцином",), (), "8140/3"),
-]
 
 NOTE_RU = (
     "Примечание: окончательная постановка диагноза осуществляется лечащим "
@@ -197,6 +187,7 @@ LABELS = {
         "conclusion": "Патогистологическое заключение:",
         "icdo": "МКБ-О код",
         "note": NOTE_RU,
+        "review": "Пересмотр готового среза № {number}",
         "male": "Муж",
         "female": "Жен",
         "date_suffix": " г.",
@@ -223,16 +214,19 @@ LABELS = {
         "conclusion": "Histopathological conclusion:",
         "icdo": "ICD-O code",
         "note": NOTE_EN,
+        "review": "Review of submitted slides No. {number}",
         "male": "Male",
         "female": "Female",
         "date_suffix": "",
     },
 }
 
-MACRO_INPUTS = (
-    "macro_size", "macro_color", "macro_consistency", "macro_work",
-    "macro_archive", "source_lang", "macro_notes", "marking_notes",
-)
+# Поля, по которым восстанавливается форма при редактировании из архива
+MACRO_INPUTS = ("marking_notes", "clinical_lang")
+
+MACRO_BLOCK_FIELDS = ("lang", "size", "color", "consistency", "work", "archive", "notes", "text")
+
+MAX_MACRO_BLOCKS = 10
 
 MAX_CONCLUSIONS = 20
 MAX_TEXT = 10000
@@ -283,9 +277,11 @@ def notice_translation(source, target):
 
 def generate_macro_small(size, color, consistency, work, archive, lang="ru"):
 
-    size = clean_line(size) or "…"
-    color_ru = to_genitive_adjective(color) if color else "…"
-    consistency_ru = to_genitive_adjective(consistency, feminine=True) if consistency else "…"
+    """Макроописание биопсии; незаполненные размер, цвет или консистенция пропускаются."""
+
+    size = clean_line(size)
+    color_ru = to_genitive_adjective(color) if clean_line(color) else ""
+    consistency_ru = to_genitive_adjective(consistency, feminine=True) if clean_line(consistency) else ""
     work = work if work in WORK_TAKEN else "полностью"
     archive = archive if archive in ARCHIVE else "без архива"
 
@@ -293,14 +289,21 @@ def generate_macro_small(size, color, consistency, work, archive, lang="ru"):
 
         unknown = [
             v for v, table in ((color_ru, COLORS), (consistency_ru, CONSISTENCIES))
-            if v != "…" and v not in table
+            if v and v not in table
+        ]
+
+        details = [
+            part for part in (
+                f"measuring {size}" if size else "",
+                COLORS.get(color_ru, color_ru),
+                f"of {CONSISTENCIES.get(consistency_ru, consistency_ru)} consistency" if consistency_ru else "",
+            ) if part
         ]
 
         text = (
-            "Biopsy material fixed in formalin: tissue measuring "
-            f"{size}, {COLORS.get(color_ru, color_ru)}, of "
-            f"{CONSISTENCIES.get(consistency_ru, consistency_ru)} consistency. "
-            f"Submitted {WORK_TAKEN[work]}, {ARCHIVE[archive]}."
+            "Biopsy material fixed in formalin"
+            + (": tissue " + ", ".join(details) if details else "")
+            + f". Submitted {WORK_TAKEN[work]}, {ARCHIVE[archive]}."
         )
 
         notice = (
@@ -310,10 +313,18 @@ def generate_macro_small(size, color, consistency, work, archive, lang="ru"):
 
         return text, notice
 
+    details = [
+        part for part in (
+            f"размерами {size}" if size else "",
+            f"{color_ru} цвета" if color_ru else "",
+            f"{consistency_ru} консистенции" if consistency_ru else "",
+        ) if part
+    ]
+
     text = (
-        "Биопсийный материал, фиксированный формалином: ткань размерами "
-        f"{size}, {color_ru} цвета, {consistency_ru} консистенции. "
-        f"Взят в работу {work}, {archive}."
+        "Биопсийный материал, фиксированный формалином"
+        + (": ткань " + ", ".join(details) if details else "")
+        + f". Взят в работу {work}, {archive}."
     )
 
     return text, ""
@@ -340,17 +351,35 @@ def sentence(text):
     return text
 
 
-def generate_macro_large(notes, marking_notes, source="ru", target="ru"):
+def note_lines(notes):
 
     lines = [sentence(line) for line in re.split(r"[\n;]+", notes or "")]
-    lines = [line for line in lines if line]
 
-    intro = (
+    return [line for line in lines if line]
+
+
+def generate_macro_large(notes, marking_notes, source="ru", target="ru", start=1, intro=True):
+
+    lines = note_lines(notes)
+
+    heading = (
         "Surgical specimen fixed in formalin:" if target == "en"
         else "Операционный материал, фиксированный формалином:"
     )
 
-    text = intro + "\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
+    numbered = "\n".join(f"{i}. {line}" for i, line in enumerate(lines, start))
+
+    # Во втором и следующих блоках вводная строка не повторяется, нумерация продолжается
+    text = heading + "\n" + numbered if intro else numbered
+
+    marking = generate_marking(marking_notes)
+
+    notice = notice_translation(source, target) if source != target and lines else ""
+
+    return text, marking, notice
+
+
+def generate_marking(marking_notes):
 
     items = []
 
@@ -375,9 +404,76 @@ def generate_macro_large(notes, marking_notes, source="ru", target="ru"):
     if marking and marking[-1] != ".":
         marking += "."
 
-    notice = notice_translation(source, target) if source != target else ""
+    return marking
 
-    return text, marking, notice
+
+def generate_macro_block(kind, block, target="ru", start=1, intro=True):
+
+    """
+    Одно макроописание (например, для одного органа).
+
+    Биопсия: предложение по размеру, цвету и консистенции и/или наброски.
+    Операционный материал: нумерованные объекты из набросков.
+    Возвращает (текст, пояснение, количество пронумерованных объектов).
+    """
+
+    source = block.get("lang") if block.get("lang") in SOURCE_LANGS else "ru"
+    notes = block.get("notes", "")
+
+    if kind == "large":
+        text, _, notice = generate_macro_large(notes, "", source, target, start, intro)
+        return text, notice, len(note_lines(notes))
+
+    parts, notices = [], []
+
+    if any(block.get(key) for key in ("size", "color", "consistency")):
+        quick, quick_notice = generate_macro_small(
+            block.get("size", ""), block.get("color", ""), block.get("consistency", ""),
+            block.get("work", ""), block.get("archive", ""), target,
+        )
+        parts.append(quick)
+        notices.append(quick_notice)
+
+    lines = note_lines(notes)
+
+    if lines:
+        parts.append(" ".join(lines))
+        if source != target:
+            notices.append(notice_translation(source, target))
+
+    return " ".join(parts), " ".join(n for n in notices if n), 0
+
+
+def generate_clinical(text, source="ru", target="ru"):
+
+    """Клинический диагноз: оформление строки; перевод и грамматику сделает нейросеть."""
+
+    value = sentence(text)
+
+    if not value:
+        return "", ""
+
+    # Стадия по TNM латиницей и заглавными: «т2н2м0» → «T2N2M0»; частые опечатки
+    # раскладки («И» вместо N) и буква «О» вместо нуля тоже исправляются
+    def tnm(m):
+        digits = [g.lower().replace("о", "0").replace("o", "0") for g in m.groups()]
+        t_value = "is" if digits[0] == "is" else digits[0].upper()
+        return f"T{t_value}N{digits[1].upper()}M{digits[2].upper()}"
+
+    value = re.sub(
+        r"\b[тt]\s*(is|[0-4x])\s*[нnи]\s*([0-3xоo])\s*[мm]\s*([01xоo])\b",
+        tnm,
+        value,
+        flags=re.IGNORECASE,
+    )
+
+    notice = (
+        notice_translation(source, target) if source != target else
+        "Текст оформлен (заглавная буква, пробелы, точка). Исправление грамматики "
+        "будет выполнять нейросеть, она подключается позже."
+    )
+
+    return value, notice
 
 
 def micro_template(diagnosis):
@@ -444,13 +540,8 @@ def suggest_icdo(diagnosis):
     if key in ICDO_CODES:
         return ICDO_CODES[key]
 
-    for required, any_of, code in ICDO_KEYWORDS:
-        if all(word in key for word in required) and (
-            not any_of or any(word in key for word in any_of)
-        ):
-            return code
-
-    return ""
+    # Формулировки не из списка: расширенный справочник по ключевым словам
+    return icdo.lookup(key)[0]
 
 
 def generate_micro(diagnosis, lang="ru"):
@@ -653,19 +744,33 @@ def parse_form(form, files):
 
     protocol_id = form.get("protocol_id", "")
 
+    review = form.get("review") == "1"
+
+    macro_blocks = [] if review else parse_macro_blocks(form)
+
+    if review:
+        macro_text = ""
+    elif macro_blocks:
+        macro_text = "\n\n".join(b["text"] for b in macro_blocks if b["text"])
+    else:
+        # Протоколы и формы без блоков: одно поле с готовым текстом
+        macro_text = limited(form.get("macro_text"))
+
     return {
         "protocol_id": int(protocol_id) if protocol_id.isdigit() else None,
         "kind": kind,
         "lang": lang,
+        "review": review,
         "fields": fields,
+        "macro_blocks": macro_blocks,
         # Исходные данные генератора, чтобы восстановить форму при редактировании
         "macro_inputs": {
             name: limited(form.get(name))[:2000]
             for name in MACRO_INPUTS
             if form.get(name)
         },
-        "macro_text": limited(form.get("macro_text")),
-        "marking_text": limited(form.get("marking_text")) if kind == "large" else "",
+        "macro_text": macro_text,
+        "marking_text": limited(form.get("marking_text")) if kind == "large" and not review else "",
         "macro_photo": (
             process_image(read_upload(files.get("macro_photo")))
             if kind == "large" else None
@@ -685,6 +790,30 @@ def parse_form(form, files):
             ),
         },
     }
+
+
+def parse_macro_blocks(form):
+
+    """Блоки макроописания mb-<n>-<поле> в порядке номеров."""
+
+    indexes = sorted({
+        int(m.group(1)) for key in form
+        if (m := re.match(r"^mb-(\d{1,2})-text$", key))
+    })
+
+    if len(indexes) > MAX_MACRO_BLOCKS:
+        raise ProtocolError(f"Не больше {MAX_MACRO_BLOCKS} макроописаний")
+
+    blocks = []
+
+    for i in indexes:
+
+        block = {name: limited(form.get(f"mb-{i}-{name}"))[:MAX_TEXT] for name in MACRO_BLOCK_FIELDS}
+
+        if any(block[name] for name in ("size", "color", "consistency", "notes", "text")):
+            blocks.append(block)
+
+    return blocks
 
 
 def table_rows(data):
@@ -748,27 +877,35 @@ def consultant_line(data):
     if not title and not name:
         return ""
 
-    return f"{title}: ____________ {name}".strip()
+    # Как на бланке лаборатории: должность и ФИО консультанта заглавными
+    return f"{title}: ____________ {name}".strip().upper()
 
 
-TRANSLIT = dict(zip(
-    "абвгдеёжзийклмнопрстуфхцчшщъыьэюяўқғҳ",
-    ["a", "b", "v", "g", "d", "e", "e", "zh", "z", "i", "y", "k", "l", "m", "n",
-     "o", "p", "r", "s", "t", "u", "f", "kh", "ts", "ch", "sh", "sch", "", "y",
-     "", "e", "yu", "ya", "o", "q", "g", "h"]
-))
+def number_line(data):
+
+    number = data["fields"]["research_number"]
+    labels = LABELS[data["lang"]]
+
+    if data.get("review"):
+        return labels["review"].format(number=number).strip()
+
+    return f"№{number}" if number else ""
 
 
 def file_name(data, extension):
 
-    # Имя файла латиницей: не все браузеры принимают кириллицу в имени загрузки
-    number = "".join(
-        TRANSLIT.get(ch.lower(), ch).upper() if ch.isupper() else TRANSLIT.get(ch, ch)
-        for ch in data["fields"]["research_number"]
-    )
-    number = re.sub(r"[^A-Za-z0-9-]+", "_", number).strip("_")
+    """Имя файла «ФИО номер.docx»; символы, запрещённые в именах файлов, заменяются."""
 
-    return f"protocol_{number or 'paithology'}.{extension}"
+    fields = data["fields"]
+
+    parts = [fields.get("patient_name", ""), fields.get("research_number", "")]
+    name = " ".join(p.strip() for p in parts if p and p.strip())
+
+    name = re.sub(r'[\\/]+', "-", name)
+    name = re.sub(r'[:*?"<>|\x00-\x1f]+', "", name)
+    name = re.sub(r"\s+", " ", name).strip(" .")[:120]
+
+    return f"{name or 'protocol'}.{extension}"
 
 
 # ---------- DOCX ----------
@@ -858,12 +995,15 @@ def build_docx(data):
                     run.add_break()
             right.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-    footer = section.footer.paragraphs[0]
-    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("PAGE ")
-    add_field(footer.add_run(), "PAGE")
-    footer.add_run("/")
-    add_field(footer.add_run(), "NUMPAGES")
+    def page_number(paragraph):
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.add_run("PAGE ")
+        add_field(paragraph.add_run(), "PAGE")
+        paragraph.add_run("/")
+        add_field(paragraph.add_run(), "NUMPAGES")
+
+    # Первая страница: внизу только номер страницы
+    page_number(section.footer.paragraphs[0])
 
     # ---- Страница 1 ----
     if header["org"] or header["form"]:
@@ -888,29 +1028,49 @@ def build_docx(data):
 
     text_paragraph(doc, labels["title"], bold=True, size=13, align=WD_ALIGN_PARAGRAPH.CENTER)
 
-    if data["fields"]["research_number"]:
-        text_paragraph(
-            doc, f"№{data['fields']['research_number']}",
-            bold=True, size=13, align=WD_ALIGN_PARAGRAPH.CENTER
-        )
+    if number_line(data):
+        text_paragraph(doc, number_line(data), bold=True, size=13, align=WD_ALIGN_PARAGRAPH.CENTER)
 
     grid_table(table_rows(data))
 
-    doc.add_paragraph()
-    text_paragraph(doc, labels["macro"], bold=True)
+    # При пересмотре готового среза макроописания нет
+    if not data.get("review") and (data["macro_text"] or data["marking_text"]):
 
-    # Каждый пункт отдельным абзацем, нумерованные пункты с отступом, как в образце
-    for line in macro_lines(data["macro_text"]):
-        p = text_paragraph(doc, line, justify=True)
-        if re.match(r"^\d+[.)]", line):
-            p.paragraph_format.left_indent = Cm(1)
+        doc.add_paragraph()
+        text_paragraph(doc, labels["macro"], bold=True)
 
-    if data["marking_text"]:
-        p = doc.add_paragraph()
-        p.add_run(labels["marking_text"] + " ").bold = True
-        p.add_run(data["marking_text"])
+        # Каждый пункт отдельным абзацем, нумерованные пункты с отступом, как в образце
+        for line in macro_lines(data["macro_text"]):
+            p = text_paragraph(doc, line, justify=True)
+            if re.match(r"^\d+[.)]", line):
+                p.paragraph_format.left_indent = Cm(1)
 
-    doc.add_page_break()
+        if data["marking_text"]:
+            p = doc.add_paragraph()
+            p.add_run(labels["marking_text"] + " ").bold = True
+            p.add_run(data["marking_text"])
+
+    # Вторая страница — отдельный раздел: внизу у неё консультант и примечание
+    second = doc.add_section(WD_SECTION.NEW_PAGE)
+    second.footer.is_linked_to_previous = False
+
+    footer_paragraphs = second.footer.paragraphs
+    line = consultant_line(data)
+
+    if line:
+        consultant = footer_paragraphs[0]
+        consultant.add_run(line).bold = True
+        consultant.paragraph_format.space_after = Pt(10)
+        note = second.footer.add_paragraph()
+    else:
+        note = footer_paragraphs[0]
+
+    note_run = note.add_run(labels["note"])
+    note_run.bold = True
+    note_run.font.size = Pt(9)
+    note.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    page_number(second.footer.add_paragraph())
 
     # ---- Страница 2 ----
     grid_table(patient_rows(data))
@@ -976,16 +1136,6 @@ def build_docx(data):
                 if code:
                     p.add_run(" " + code).bold = True
 
-    line = consultant_line(data)
-
-    if line:
-        doc.add_paragraph()
-        doc.add_paragraph()
-        text_paragraph(doc, line, bold=True)
-
-    doc.add_paragraph()
-    text_paragraph(doc, labels["note"], bold=True, size=9, justify=True)
-
     out = io.BytesIO()
     doc.save(out)
 
@@ -1006,8 +1156,8 @@ def build_pdf(data):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.pdfgen import canvas as rl_canvas
     from reportlab.platypus import (
-        Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table,
-        TableStyle,
+        BaseDocTemplate, Frame, Image as RLImage, NextPageTemplate, PageBreak,
+        PageTemplate, Paragraph, Spacer, Table, TableStyle,
     )
 
     if "PaithologySerif" not in pdfmetrics.getRegisteredFontNames():
@@ -1098,13 +1248,46 @@ def build_pdf(data):
             block.drawOn(canvas, A4[0] - 2 * cm - 9 * cm, top - h)
         canvas.restoreState()
 
+    # Низ второй и следующих страниц: консультант заглавными и примечание над номером
+    line = consultant_line(data)
+    consultant_block = para(line, bold) if line else None
+    note_block = para(labels["note"], note)
+
+    _, note_height = note_block.wrap(width, 10 * cm)
+    consultant_height = consultant_block.wrap(width, 5 * cm)[1] + 0.35 * cm if consultant_block else 0
+    footer_height = note_height + consultant_height
+
+    def draw_later(canvas, document):
+        draw_header(canvas, document)
+        canvas.saveState()
+        note_block.drawOn(canvas, 2 * cm, 1.6 * cm)
+        if consultant_block:
+            consultant_block.drawOn(canvas, 2 * cm, 1.6 * cm + note_height + 0.35 * cm)
+        canvas.restoreState()
+
     out = io.BytesIO()
 
-    document = SimpleDocTemplate(
+    top_margin = (4 if has_top else 1.8) * cm
+    first_bottom = 2 * cm
+    later_bottom = 1.6 * cm + footer_height + 0.6 * cm
+
+    document = BaseDocTemplate(
         out, pagesize=A4, leftMargin=2 * cm, rightMargin=2 * cm,
-        topMargin=(4 if has_top else 1.8) * cm, bottomMargin=2 * cm,
-        title=labels["title"],
+        topMargin=top_margin, bottomMargin=first_bottom, title=labels["title"],
     )
+
+    document.addPageTemplates([
+        PageTemplate(
+            id="first",
+            frames=[Frame(2 * cm, first_bottom, width, A4[1] - top_margin - first_bottom, id="f1")],
+            onPage=draw_header,
+        ),
+        PageTemplate(
+            id="later",
+            frames=[Frame(2 * cm, later_bottom, width, A4[1] - top_margin - later_bottom, id="f2")],
+            onPage=draw_later,
+        ),
+    ])
 
     story = []
 
@@ -1117,8 +1300,8 @@ def build_pdf(data):
 
     story.append(para(labels["title"], title))
 
-    if data["fields"]["research_number"]:
-        story.append(para(f"№{data['fields']['research_number']}", title))
+    if number_line(data):
+        story.append(para(number_line(data), title))
 
     story.append(Spacer(1, 0.3 * cm))
     story.append(Table(
@@ -1126,17 +1309,21 @@ def build_pdf(data):
         colWidths=[width * 0.47, width * 0.53], style=grid
     ))
 
-    story += [Spacer(1, 0.5 * cm), para(labels["macro"], bold)]
+    # При пересмотре готового среза макроописания нет
+    if not data.get("review") and (data["macro_text"] or data["marking_text"]):
 
-    indented = ParagraphStyle("indented", parent=justify, leftIndent=1 * cm)
+        story += [Spacer(1, 0.5 * cm), para(labels["macro"], bold)]
 
-    for line in macro_lines(data["macro_text"]):
-        story.append(para(line, indented if re.match(r"^\d+[.)]", line) else justify))
+        indented = ParagraphStyle("indented", parent=justify, leftIndent=1 * cm)
 
-    if data["marking_text"]:
-        story += [Spacer(1, 0.3 * cm), rich([(labels["marking_text"] + " ", True), (data["marking_text"], False)])]
+        for line in macro_lines(data["macro_text"]):
+            story.append(para(line, indented if re.match(r"^\d+[.)]", line) else justify))
 
-    story.append(PageBreak())
+        if data["marking_text"]:
+            story += [Spacer(1, 0.3 * cm), rich([(labels["marking_text"] + " ", True), (data["marking_text"], False)])]
+
+    # Со второй страницы — шаблон с консультантом и примечанием внизу
+    story += [NextPageTemplate("later"), PageBreak()]
     story.append(Table(
         [[para(a), para(b)] for a, b in patient_rows(data)],
         colWidths=[width * 0.47, width * 0.53], style=grid
@@ -1193,13 +1380,6 @@ def build_pdf(data):
                 text, code = conclusion_line(item, lang)
                 story.append(rich([(f"{i}. {text}", False), ((" " + code) if code else "", True)]))
 
-    line = consultant_line(data)
-
-    if line:
-        story += [Spacer(1, 1.2 * cm), para(line, bold)]
-
-    story += [Spacer(1, 1 * cm), para(labels["note"], note)]
-
-    document.build(story, onFirstPage=draw_header, onLaterPages=draw_header, canvasmaker=NumberedCanvas)
+    document.build(story, canvasmaker=NumberedCanvas)
 
     return out.getvalue()

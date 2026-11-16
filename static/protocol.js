@@ -69,40 +69,45 @@
 
     document.getElementById("to-step-1").addEventListener("click", () => showStep(1));
 
-    // ---------- Макроописание ----------
+    // ---------- Общие поля: календарь, клинический диагноз, макроописания ----------
 
-    const macroNotice = document.getElementById("macro-notice");
+    const PF = window.ProtocolFields;
+    const docLang = () => value("doc_lang") || "ru";
 
-    document.getElementById("generate-macro").addEventListener("click", (event) => {
-        const button = event.currentTarget;
-        const payload = { kind, doc_lang: value("doc_lang") };
-        if (kind === "small") {
-            Object.assign(payload, {
-                size: document.getElementById("m-size").value,
-                color: document.getElementById("m-color").value,
-                consistency: document.getElementById("m-consistency").value,
-                work: document.getElementById("m-work").value,
-                archive: document.getElementById("m-archive").value,
-            });
-        } else {
-            Object.assign(payload, {
-                source_lang: document.getElementById("source-lang").value,
-                notes: document.getElementById("macro-notes").value,
-                marking_notes: document.getElementById("marking-notes").value,
-            });
-        }
-        withBusy(button, async () => {
-            try {
-                const data = await postJSON(page.dataset.macroUrl, payload);
-                document.getElementById("macro-text").value = data.text || "";
-                const marking = document.getElementById("marking-text");
-                if (marking) marking.value = data.marking || "";
-                macroNotice.textContent = data.notice || "";
-            } catch (error) {
-                macroNotice.textContent = error.message;
-            }
-        });
+    PF.setupCalendars(form);
+    PF.setupClinical(form, { url: page.dataset.clinicalUrl, csrf, docLang });
+
+    const macroBlocks = PF.setupMacroBlocks(form, {
+        url: page.dataset.macroUrl, csrf, docLang,
+        initial: initial ? initial.macro_blocks : null,
     });
+
+    const markingButton = document.getElementById("generate-marking");
+
+    if (markingButton) {
+        markingButton.addEventListener("click", () => withBusy(markingButton, async () => {
+            const data = await postJSON(page.dataset.markingUrl, { notes: value("marking_notes") });
+            document.getElementById("marking-text").value = data.marking || "";
+        }));
+    }
+
+    // ---------- Пересмотр готового среза: макроописание не нужно ----------
+
+    const reviewToggle = document.getElementById("review-toggle");
+    const reviewInput = document.getElementById("review-input");
+
+    function setReview(on) {
+        reviewInput.value = on ? "1" : "0";
+        reviewToggle.classList.toggle("active", on);
+        reviewToggle.setAttribute("aria-pressed", on ? "true" : "false");
+        document.getElementById("macro-card").hidden = on;
+        document.getElementById("review-badge").hidden = !on;
+        const operation = form.elements.operation_type;
+        if (on && !operation.value.trim()) operation.value = "пересмотр";
+        if (!on && operation.value.trim() === "пересмотр") operation.value = "";
+    }
+
+    reviewToggle.addEventListener("click", () => setReview(reviewInput.value !== "1"));
 
     // ---------- Заключения ----------
 
@@ -362,14 +367,25 @@
         Object.entries(initial.fields || {}).forEach(([name, text]) => setValue(name, text));
         Object.entries(initial.macro_inputs || {}).forEach(([name, text]) => setValue(name, text));
         setValue("doc_lang", initial.lang);
-        setValue("macro_text", initial.macro_text);
         setValue("marking_text", initial.marking_text);
+        if (initial.review) setReview(true);
         setValue("consultant_title", initial.consultant_title);
         setValue("consultant_name", initial.consultant_name);
         (initial.conclusions || []).forEach((c) => addConclusion(c));
     }
 
     if (!list.children.length) addConclusion();
+
+    // Новый протокол (в том числе из ИИ-анализа): лаборант, метод окраски и подпись
+    // из сохранённых значений; заполняются только пустые поля
+    if (!initial || page.dataset.fromCase) PF.applyDefaults(form);
+
+    document.getElementById("remember-defaults").addEventListener("click", () => {
+        const ok = PF.rememberDefaults(form);
+        document.getElementById("defaults-status").textContent = ok
+            ? "Запомнено: будет подставляться в новые протоколы."
+            : "Не удалось сохранить в этом браузере.";
+    });
 
     // ---------- Шапка лаборатории (хранится в браузере) ----------
 
@@ -441,8 +457,19 @@
         }
     }));
 
+    // Подсказка о папке для автосохранения
+    (async () => {
+        const hint = document.getElementById("folder-hint");
+        const folder = PF.readDefaults().autosave ? await PF.getFolder() : null;
+        hint.textContent = folder
+            ? `Файлы сохраняются в папку «${folder.name}» с именем «ФИО номер».`
+            : "Файлы называются «ФИО номер». Папку для автосохранения можно выбрать в настройках.";
+    })();
+
     document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => withBusy(button, async () => {
         const format = button.dataset.download;
+        // Разрешение на запись в папку запрашивается сразу по нажатию кнопки
+        const folder = await PF.folderReady();
         const data = await collect();
         data.set("format", format);
 
@@ -458,19 +485,11 @@
                 throw new Error(error.error || "Не удалось собрать документ");
             }
             const blob = await response.blob();
-            const disposition = response.headers.get("Content-Disposition") || "";
-            // Сначала полное имя в UTF-8 (filename*), затем запасное ASCII-имя
-            const match = /filename\*=UTF-8''([^;]+)/i.exec(disposition) || /filename="?([^";]+)"?/i.exec(disposition);
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = match ? decodeURIComponent(match[1]) : `protocol.${format}`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+            const name = PF.fileName(value("patient_name"), value("research_number"), format);
+            const delivered = await PF.deliver(blob, name, folder);
             const id = response.headers.get("X-Protocol-Id");
             remember(id);
-            if (id) savedMessage(id, "Документ скачан и сохранён в архив.");
+            if (id) savedMessage(id, `${delivered} Протокол сохранён в архив.`);
         } catch (error) {
             downloadStatus.className = "status-line error";
             downloadStatus.textContent = error.message;
