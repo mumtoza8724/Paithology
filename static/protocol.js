@@ -3,6 +3,8 @@
 
 (function () {
 
+    const t = window.t || ((text) => text);
+
     const page = document.getElementById("protocol-page");
     const form = document.getElementById("protocol-form");
     const kind = page.dataset.kind;
@@ -28,7 +30,7 @@
             body: JSON.stringify(payload),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Не удалось выполнить запрос");
+        if (!response.ok) throw new Error(data.error || t("Не удалось выполнить запрос"));
         return data;
     }
 
@@ -53,16 +55,16 @@
     document.getElementById("to-step-2").addEventListener("click", () => {
         const status = document.getElementById("step1-status");
         const missing = [];
-        if (!value("research_number")) missing.push("№ исследования");
-        if (!value("patient_name")) missing.push("ФИО пациента");
+        if (!value("research_number")) missing.push(t("№ исследования"));
+        if (!value("patient_name")) missing.push(t("ФИО пациента"));
         if (missing.length) {
-            status.textContent = "Заполните: " + missing.join(", ");
+            status.textContent = t("Заполните: {fields}", { fields: missing.join(", ") });
             return;
         }
         status.textContent = "";
         const gender = value("gender");
         document.getElementById("sum-name").textContent = value("patient_name") || "—";
-        document.getElementById("sum-gender").textContent = gender === "Мужской" ? "Муж" : gender === "Женский" ? "Жен" : "—";
+        document.getElementById("sum-gender").textContent = gender === "Мужской" ? t("Муж") : gender === "Женский" ? t("Жен") : "—";
         document.getElementById("sum-birth").textContent = formatDate(value("birth_date")) || "—";
         showStep(2);
     });
@@ -134,7 +136,7 @@
         button.addEventListener("click", () => withBusy(button, async () => {
             const notice = card.querySelector("[data-notice]");
             const diagnosis = card.querySelector("[data-field=diagnosis]").value.trim();
-            if (!diagnosis) { notice.textContent = "Сначала введите заключение."; return; }
+            if (!diagnosis) { notice.textContent = t("Сначала введите заключение."); return; }
             try {
                 const data = await postJSON(page.dataset.microUrl, { diagnosis, doc_lang: value("doc_lang") });
                 if (data.micro) card.querySelector("[data-field=micro]").value = data.micro;
@@ -399,8 +401,8 @@
     document.getElementById("remember-defaults").addEventListener("click", () => {
         const ok = PF.rememberDefaults(form);
         document.getElementById("defaults-status").textContent = ok
-            ? "Запомнено: будет подставляться в новые протоколы."
-            : "Не удалось сохранить в этом браузере.";
+            ? t("Запомнено: будет подставляться в новые протоколы.")
+            : t("Не удалось сохранить в этом браузере.");
     });
 
     // ---------- Шапка лаборатории (хранится в браузере) ----------
@@ -414,8 +416,8 @@
     const configured = header && (header.org || header.form || header.address || header.logo);
     chip.className = "header-chip " + (configured ? "ok" : "missing");
     chip.innerHTML = configured
-        ? '<i class="bi bi-check-circle"></i> Шапка лаборатории настроена'
-        : '<i class="bi bi-exclamation-circle"></i> Шапка лаборатории не настроена — открыть настройки';
+        ? '<i class="bi bi-check-circle"></i> ' + t("Шапка лаборатории настроена")
+        : '<i class="bi bi-exclamation-circle"></i> ' + t("Шапка лаборатории не настроена — открыть настройки");
 
     async function dataUrlToBlob(url) {
         return (await fetch(url)).blob();
@@ -449,7 +451,7 @@
         downloadStatus.append(prefix + " ");
         const link = document.createElement("a");
         link.href = `/protocols/${id}`;
-        link.textContent = "Открыть в архиве";
+        link.textContent = t("Открыть в архиве");
         link.style.color = "#d8b4fe";
         downloadStatus.append(link);
     }
@@ -458,15 +460,15 @@
 
     saveButton.addEventListener("click", () => withBusy(saveButton, async () => {
         downloadStatus.className = "status-line";
-        downloadStatus.textContent = "Сохраняю…";
+        downloadStatus.textContent = t("Сохраняю…");
         try {
             const response = await fetch(page.dataset.saveUrl, {
                 method: "POST", body: await collect(), headers: { "X-CSRF-Token": csrf },
             });
             const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.error || "Не удалось сохранить протокол");
+            if (!response.ok) throw new Error(result.error || t("Не удалось сохранить протокол"));
             remember(result.id, result.edit_url);
-            savedMessage(result.id, result.changed ? "Сохранено в архив." : "Изменений нет, протокол уже в архиве.");
+            savedMessage(result.id, result.changed ? t("Сохранено в архив.") : t("Изменений нет, протокол уже в архиве."));
         } catch (error) {
             downloadStatus.className = "status-line error";
             downloadStatus.textContent = error.message;
@@ -478,8 +480,8 @@
         const hint = document.getElementById("folder-hint");
         const folder = PF.readDefaults().autosave ? await PF.getFolder() : null;
         hint.textContent = folder
-            ? `Файлы сохраняются в папку «${folder.name}» с именем «ФИО номер».`
-            : "Файлы называются «ФИО номер». Папку для автосохранения можно выбрать в настройках.";
+            ? t("Файлы сохраняются в папку «{folder}» с именем «ФИО номер».", { folder: folder.name })
+            : t("Файлы называются «ФИО номер». Папку для автосохранения можно выбрать в настройках.");
     })();
 
     document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => withBusy(button, async () => {
@@ -490,7 +492,7 @@
         data.set("format", format);
 
         downloadStatus.className = "status-line";
-        downloadStatus.textContent = "Собираю документ…";
+        downloadStatus.textContent = t("Собираю документ…");
 
         try {
             const response = await fetch(page.dataset.downloadUrl, {
@@ -498,14 +500,14 @@
             });
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
-                throw new Error(error.error || "Не удалось собрать документ");
+                throw new Error(error.error || t("Не удалось собрать документ"));
             }
             const blob = await response.blob();
             const name = PF.fileName(value("patient_name"), value("research_number"), format);
             const delivered = await PF.deliver(blob, name, folder);
             const id = response.headers.get("X-Protocol-Id");
             remember(id);
-            if (id) savedMessage(id, `${delivered} Протокол сохранён в архив.`);
+            if (id) savedMessage(id, delivered + " " + t("Протокол сохранён в архив."));
         } catch (error) {
             downloadStatus.className = "status-line error";
             downloadStatus.textContent = error.message;

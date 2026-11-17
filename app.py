@@ -22,6 +22,9 @@ from database import (
 from qr_generator import create_qr
 import protocols
 import protocol_store
+import i18n
+from markupsafe import Markup
+from i18n import gettext as _
 from datetime import datetime
 
 import os
@@ -349,6 +352,80 @@ def csrf_token():
 
 
 app.jinja_env.globals["csrf_token"] = csrf_token
+app.jinja_env.globals["_"] = _
+
+
+@app.context_processor
+def language_context():
+
+    lang = i18n.current_language()
+
+    return {
+        "current_lang": lang,
+        "languages": i18n.LANGUAGES,
+        "script_catalog": i18n.script_catalog(lang),
+    }
+
+
+# Записи истории изменений хранятся по-русски; переводим их при показе
+CHANGE_PATTERNS = (
+    (re.compile(r"^Заключение (\d+) добавлено$"), "Заключение {number} добавлено"),
+    (re.compile(r"^Заключение (\d+) удалено$"), "Заключение {number} удалено"),
+    (re.compile(r"^Заключение (\d+)$"), "Заключение {number}"),
+)
+
+
+@app.template_filter("change_label")
+def change_label(text):
+
+    for pattern, message in CHANGE_PATTERNS:
+        match = pattern.match(text or "")
+        if match:
+            return _(message, number=match.group(1))
+
+    return _(text)
+
+
+@app.template_filter("tr_list")
+def translate_list(text):
+    """Список через запятую из анкеты консультанта: переводим известные значения."""
+
+    if not text:
+        return ""
+
+    parts = re.split(r"\s*([;,])\s*", text)
+
+    return "".join(
+        part + " " if part in (";", ",") else _(part.strip())
+        for part in parts
+    ).strip()
+
+
+def protocol_error_text(error):
+
+    return _(error.message, **error.values)
+
+
+@app.route("/lang/<code>")
+def set_language(code):
+
+    lang = i18n.normalize(code)
+
+    if not lang:
+        abort(404)
+
+    response = redirect(i18n.safe_next(request.args.get("next")))
+
+    response.set_cookie(
+        i18n.COOKIE_NAME,
+        lang,
+        max_age=i18n.COOKIE_MAX_AGE,
+        samesite="Lax",
+        secure=app.config.get("SESSION_COOKIE_SECURE", False),
+        httponly=True,
+    )
+
+    return response
 
 
 @app.before_request
@@ -376,7 +453,7 @@ def security_checks():
         if not csrf_token_matches(sent, expected):
             abort(
                 400,
-                description="Сессия устарела. Обновите страницу и повторите действие."
+                description=_("Сессия устарела. Обновите страницу и повторите действие.")
             )
 
 
@@ -407,15 +484,7 @@ def home():
 
     if user.free_attempts <= 0 and not user.is_paid:
 
-        return """
-
-        <h1>
-
-        Бесплатные попытки закончились
-
-        </h1>
-
-        """
+        return Markup("<h1>{}</h1>").format(_("Бесплатные попытки закончились"))
 
 
     images = request.files.getlist("images")
@@ -764,7 +833,7 @@ def report(id):
                 ),
             }
         except protocols.ProtocolError as e:
-            return jsonify(error=str(e)), 400
+            return jsonify(error=protocol_error_text(e)), 400
         consultant_title = protocols.limited(request.form.get("consultant_title"))
         consultant_name = protocols.limited(request.form.get("consultant_name"))
 
@@ -1003,13 +1072,13 @@ def register():
 
         if not username or not password:
 
-            return "Введите логин и пароль"
+            return _("Введите логин и пароль")
 
         # Логины администраторов нельзя занять через публичную регистрацию:
         # иначе после сброса базы посторонний получил бы права администратора
         if is_reserved_admin_username(username):
 
-            return "Этот логин недоступен для регистрации"
+            return _("Этот логин недоступен для регистрации")
 
         existing = User.query.filter_by(
             username=username
@@ -1017,7 +1086,7 @@ def register():
 
         if existing:
 
-            return "Пользователь уже существует"
+            return _("Пользователь уже существует")
 
         user = User(
 
@@ -1065,7 +1134,7 @@ def login():
 
             return redirect("/")
 
-        return "Неверный логин или пароль"
+        return _("Неверный логин или пароль")
 
     return render_template(
         "login.html"
@@ -1093,17 +1162,9 @@ def buy_pro():
 
     db.session.commit()
 
-    return """
-
-    <h1>
-    PRO подписка активирована
-    </h1>
-
-    <a href="/">
-    Вернуться назад
-    </a>
-
-    """
+    return Markup('<h1>{}</h1><a href="/">{}</a>').format(
+        _("PRO подписка активирована"), _("Вернуться назад")
+    )
 
 @app.route("/admin/consultants")
 @admin_required
@@ -1233,7 +1294,7 @@ def render_protocol_form(kind, protocol=None):
     return render_template(
         "protocol_form.html",
         kind=kind,
-        title=PROTOCOL_TITLES[kind],
+        title=_(PROTOCOL_TITLES[kind]),
         protocol=protocol,
         initial=initial,
         current_user=g.user,
@@ -1298,14 +1359,14 @@ def save_protocol_from_form():
     try:
         parsed = protocols.parse_form(request.form, request.files)
     except protocols.ProtocolError as e:
-        return None, (jsonify(error=str(e)), 400)
+        return None, (jsonify(error=protocol_error_text(e)), 400)
 
     try:
         protocol, changed = protocol_store.save(
             g.user.id, parsed, app.config["PROTOCOL_FOLDER"]
         )
     except protocol_store.ProtocolNotFound:
-        return None, (jsonify(error="Протокол не найден"), 404)
+        return None, (jsonify(error=_("Протокол не найден")), 404)
 
     return (protocol, changed), None
 
@@ -1413,7 +1474,7 @@ def protocol_generate_macro():
 
         return jsonify(text=text, marking=marking, notice=notice)
 
-    return jsonify(error="Неизвестный тип протокола"), 400
+    return jsonify(error=_("Неизвестный тип протокола")), 400
 
 
 @app.route("/protocols/generate/marking", methods=["POST"])
@@ -1465,7 +1526,7 @@ def protocol_download():
     output = request.form.get("format")
 
     if output not in ("docx", "pdf"):
-        return jsonify(error="Неизвестный формат файла"), 400
+        return jsonify(error=_("Неизвестный формат файла")), 400
 
     # Каждый скачанный протокол автоматически сохраняется в архив
     result, error = save_protocol_from_form()
@@ -1473,7 +1534,7 @@ def protocol_download():
     if error:
         return error
 
-    protocol, _ = result
+    protocol, _changed = result
 
     return protocol_file_response(protocol, output)
 

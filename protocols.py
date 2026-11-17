@@ -238,7 +238,13 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 
 
 class ProtocolError(ValueError):
-    pass
+    """Ошибка в данных протокола. message — русская строка-шаблон для перевода
+    интерфейса, values — подставляемые в неё значения."""
+
+    def __init__(self, message, **values):
+        self.message = message
+        self.values = values
+        super().__init__(message.format(**values) if values else message)
 
 
 # ---------- Временный генератор текстов ----------
@@ -709,7 +715,7 @@ def parse_form(form, files):
     )
 
     if len(indexes) > MAX_CONCLUSIONS:
-        raise ProtocolError(f"Не больше {MAX_CONCLUSIONS} заключений")
+        raise ProtocolError("Не больше {count} заключений", count=MAX_CONCLUSIONS)
 
     conclusions = []
 
@@ -802,7 +808,7 @@ def parse_macro_blocks(form):
     })
 
     if len(indexes) > MAX_MACRO_BLOCKS:
-        raise ProtocolError(f"Не больше {MAX_MACRO_BLOCKS} макроописаний")
+        raise ProtocolError("Не больше {count} макроописаний", count=MAX_MACRO_BLOCKS)
 
     blocks = []
 

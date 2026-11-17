@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -146,6 +146,8 @@ button:hover{
 
 <body>
 
+{% include "lang_switch.html" %}
+
 <div class="card">
 
 <img
@@ -158,7 +160,7 @@ PAITHOLOGY
 </h1>
 
 <p class="subtitle">
-Ассистент патоморфолога
+{{ _("Ассистент патоморфолога") }}
 </p>
 
 <form method="POST">
@@ -168,19 +170,19 @@ PAITHOLOGY
 <input
 type="text"
 name="username"
-placeholder="Логин"
+placeholder="{{ _("Логин") }}"
 required
 >
 
 <input
 type="password"
 name="password"
-placeholder="Пароль"
+placeholder="{{ _("Пароль") }}"
 required
 >
 
 <button type="submit">
-Войти
+{{ _("Войти") }}
 </button>
 
 </form>
@@ -188,7 +190,7 @@ required
 <div class="link">
 
 <a href="/register">
-Создать аккаунт
+{{ _("Создать аккаунт") }}
 </a>
 
 </div>

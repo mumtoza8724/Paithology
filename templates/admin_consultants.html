@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
 
     <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Модерация консультантов</title>
+    <title>{{ _("Модерация консультантов") }}</title>
 
     <style>
 
@@ -122,7 +122,9 @@ h1{
 <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
 </head>
 <body class="page-admin-consultants">
-<h1>Проверка консультантов</h1>
+
+{% include "lang_switch.html" %}
+<h1>{{ _("Проверка консультантов") }}</h1>
 
 {% for consultant in consultants %}
 
@@ -141,48 +143,48 @@ class="photo">
 <b>Email:</b>
 {{ consultant.email }}
 </p><p>
-<b>Страна:</b>
-{{ consultant.country }}
+<b>{{ _("Страна:") }}</b>
+{{ _(consultant.country or '') }}
 </p><p>
-<b>Город:</b>
+<b>{{ _("Город:") }}</b>
 {{ consultant.city }}
 </p><p>
-<b>Учёная степень:</b>
-{{ consultant.degree }}
+<b>{{ _("Учёная степень:") }}</b>
+{{ _(consultant.degree or '') }}
 </p><p>
-<b>Организация:</b>
+<b>{{ _("Организация:") }}</b>
 {{ consultant.organization }}
 </p><p>
-<b>Должность:</b>
+<b>{{ _("Должность:") }}</b>
 {{ consultant.position }}
 </p><p>
-<b>Опыт:</b>
-{{ consultant.experience }}
+<b>{{ _("Опыт:") }}</b>
+{{ _(consultant.experience or '') }}
 </p><p>
-<b>Специализации:</b>
-{{ consultant.specializations }}
+<b>{{ _("Специализации:") }}</b>
+{{ consultant.specializations|tr_list }}
 </p><p>
-<b>Языки:</b>
-{{ consultant.languages }}
+<b>{{ _("Языки:") }}</b>
+{{ consultant.languages|tr_list }}
 </p>
 <p>
-<b>Стоимость консультации:</b>
+<b>{{ _("Стоимость консультации:") }}</b>
 {{ consultant.consult_price }} $
 </p>
     <p>
-<b>Время ответа:</b>
+<b>{{ _("Время ответа:") }}</b>
 {{ consultant.response_time }}
 </p><p>
-<b>Карта:</b>
+<b>{{ _("Карта:") }}</b>
 {{ consultant.card }}
 </p><p>
-<b>Владелец карты:</b>
+<b>{{ _("Владелец карты:") }}</b>
 {{ consultant.owner }}
 </p>
     <p>
 
     <div class="documents">
-        <h3>Документы</h3>
+        <h3>{{ _("Документы") }}</h3>
         {% if consultant.documents %}
 
 {% for file in consultant.documents.split(';') %}
@@ -196,16 +198,16 @@ target="_blank">
 
 {% else %}
 
-<p>Документы не загружены</p>{% endif %}
+<p>{{ _("Документы не загружены") }}</p>{% endif %}
 
 </div><p class="status">{% if consultant.verified %}
 
 <span class="approved">
-✅ Одобрен
+{{ _("✅ Одобрен") }}
 </span>{% else %}
 
 <span class="pending">
-⏳ Ожидает проверки
+{{ _("⏳ Ожидает проверки") }}
 </span>{% endif %}
 
 </p><div class="buttons"><form
@@ -219,7 +221,7 @@ type="submit"
 class="btn approve"
 style="border:none;cursor:pointer;font-family:inherit;font-size:inherit">
 
-Одобрить
+{{ _("Одобрить") }}
 
 </button>
 
@@ -235,7 +237,7 @@ type="submit"
 class="btn reject"
 style="border:none;cursor:pointer;font-family:inherit;font-size:inherit">
 
-Отклонить
+{{ _("Отклонить") }}
 
 </button>
 

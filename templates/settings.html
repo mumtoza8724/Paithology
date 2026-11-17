@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Настройки — PAITHOLOGY</title>
+<title>{{ _("Настройки — PAITHOLOGY") }}</title>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
@@ -21,46 +21,46 @@
 
 <div class="main protocol">
 
-    <h1 class="page-title">Настройки</h1>
+    <h1 class="page-title">{{ _("Настройки") }}</h1>
 
-    <p class="page-subtitle">Шапка лаборатории, значения по умолчанию и папка для протоколов</p>
+    <p class="page-subtitle">{{ _("Шапка лаборатории, значения по умолчанию и папка для протоколов") }}</p>
 
     <div class="glass-card">
 
         <div class="card-heading">
-            <h2><i class="bi bi-building"></i> Шапка документа</h2>
+            <h2><i class="bi bi-building"></i> {{ _("Шапка документа") }}</h2>
         </div>
 
-        <label class="field-label" for="h-logo">Логотип лаборатории (PNG или JPG)</label>
+        <label class="field-label" for="h-logo">{{ _("Логотип лаборатории (PNG или JPG)") }}</label>
         <div class="logo-row">
-            <div class="logo-preview" id="logo-preview"><span style="color:#555">Нет логотипа</span></div>
+            <div class="logo-preview" id="logo-preview"><span style="color:#555">{{ _("Нет логотипа") }}</span></div>
             <div>
                 <input type="file" id="h-logo" accept="image/png,image/jpeg" style="height:auto;padding:12px">
                 <button type="button" class="btn btn-ghost btn-small" id="logo-remove" style="margin-top:10px">
-                    <i class="bi bi-trash"></i> Убрать логотип
+                    <i class="bi bi-trash"></i> {{ _("Убрать логотип") }}
                 </button>
             </div>
         </div>
 
-        <label class="field-label" for="h-address">Адрес (справа от логотипа на каждой странице)</label>
+        <label class="field-label" for="h-address">{{ _("Адрес (справа от логотипа на каждой странице)") }}</label>
         <textarea id="h-address" style="min-height:90px"
-                  placeholder="Адрес: г. …, ул. …, дом …&#10;Ориентир: …"></textarea>
+                  placeholder="{{ _("Адрес: г. …, ул. …, дом …") }}&#10;{{ _("Ориентир: …") }}"></textarea>
 
-        <label class="field-label" for="h-org">Блок организации (слева на первой странице)</label>
+        <label class="field-label" for="h-org">{{ _("Блок организации (слева на первой странице)") }}</label>
         <textarea id="h-org"
-                  placeholder="Министерство Здравоохранения …&#10;ООО «…»&#10;Лицензия № … от …&#10;Договор об оказании лабораторных услуг от …"></textarea>
+                  placeholder="{{ _("Министерство Здравоохранения …") }}&#10;{{ _("ООО «…»") }}&#10;{{ _("Лицензия № … от …") }}&#10;{{ _("Договор об оказании лабораторных услуг от …") }}"></textarea>
 
-        <label class="field-label" for="h-form">Форма документа (справа на первой странице)</label>
+        <label class="field-label" for="h-form">{{ _("Форма документа (справа на первой странице)") }}</label>
         <textarea id="h-form" style="min-height:90px"
-                  placeholder="Форма медицинского документа № 014,&#10;утвержденная приказом …"></textarea>
+                  placeholder="{{ _("Форма медицинского документа № 014,") }}&#10;{{ _("утвержденная приказом …") }}"></textarea>
 
         <div class="form-actions">
             <button type="button" class="btn btn-ghost" id="h-clear">
-                <i class="bi bi-eraser"></i> Очистить
+                <i class="bi bi-eraser"></i> {{ _("Очистить") }}
             </button>
             <div class="right">
                 <button type="button" class="btn btn-primary" id="h-save">
-                    <i class="bi bi-check-lg"></i> Сохранить
+                    <i class="bi bi-check-lg"></i> {{ _("Сохранить") }}
                 </button>
             </div>
         </div>
@@ -72,27 +72,27 @@
     <div class="glass-card">
 
         <div class="card-heading">
-            <h2><i class="bi bi-bookmark-check"></i> Значения по умолчанию</h2>
+            <h2><i class="bi bi-bookmark-check"></i> {{ _("Значения по умолчанию") }}</h2>
         </div>
 
-        <p class="hint">Подставляются в каждый новый протокол и на главной странице; в протоколе их можно изменить.</p>
+        <p class="hint">{{ _("Подставляются в каждый новый протокол и на главной странице; в протоколе их можно изменить.") }}</p>
 
         <div class="form-grid" id="defaults-form">
             <div class="input-group">
                 <span class="icon"><i class="bi bi-eyedropper"></i></span>
-                <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
+                <input type="text" name="lab_worker" placeholder="{{ _("ФИО лаборанта") }}">
             </div>
             <div class="input-group">
                 <span class="icon"><i class="bi bi-palette"></i></span>
-                <input list="stains" name="stain_method" placeholder="Метод окраски">
+                <input list="stains" name="stain_method" placeholder="{{ _("Метод окраски") }}">
             </div>
             <div class="input-group">
                 <span class="icon"><i class="bi bi-award"></i></span>
-                <input type="text" name="consultant_title" placeholder="Должность консультанта (например, Консультант, д.м.н. профессор)">
+                <input type="text" name="consultant_title" placeholder="{{ _("Должность консультанта (например, Консультант, д.м.н. профессор)") }}">
             </div>
             <div class="input-group">
                 <span class="icon"><i class="bi bi-person-check"></i></span>
-                <input type="text" name="consultant_name" placeholder="ФИО консультанта">
+                <input type="text" name="consultant_name" placeholder="{{ _("ФИО консультанта") }}">
             </div>
         </div>
 
@@ -100,7 +100,7 @@
             <span></span>
             <div class="right">
                 <button type="button" class="btn btn-primary" id="d-save">
-                    <i class="bi bi-check-lg"></i> Сохранить значения
+                    <i class="bi bi-check-lg"></i> {{ _("Сохранить значения") }}
                 </button>
             </div>
         </div>
@@ -112,21 +112,19 @@
     <div class="glass-card">
 
         <div class="card-heading">
-            <h2><i class="bi bi-folder2-open"></i> Папка для сохранения протоколов</h2>
+            <h2><i class="bi bi-folder2-open"></i> {{ _("Папка для сохранения протоколов") }}</h2>
         </div>
 
         <p class="hint">
-            Скачанные протоколы будут сразу сохраняться в выбранную папку компьютера с именем
-            «ФИО номер» (например, «Тестова Мария 6438-40-26.docx»). Работает в Chrome и Edge
-            на компьютере; браузер может один раз за сеанс спросить разрешение на запись.
+            {{ _("Скачанные протоколы будут сразу сохраняться в выбранную папку компьютера с именем «ФИО номер» (например, «Тестова Мария 6438-40-26.docx»). Работает в Chrome и Edge на компьютере; браузер может один раз за сеанс спросить разрешение на запись.") }}
         </p>
 
         <div class="tool-row">
             <button type="button" class="btn btn-primary" id="f-choose">
-                <i class="bi bi-folder-plus"></i> Выбрать папку
+                <i class="bi bi-folder-plus"></i> {{ _("Выбрать папку") }}
             </button>
             <button type="button" class="btn btn-ghost" id="f-forget">
-                <i class="bi bi-x-lg"></i> Не сохранять в папку
+                <i class="bi bi-x-lg"></i> {{ _("Не сохранять в папку") }}
             </button>
         </div>
 
@@ -137,9 +135,7 @@
     <div class="info-banner">
         <i class="bi bi-info-circle"></i>
         <div>
-            Пока настройки хранятся только в этом браузере на этом устройстве и на сервер не
-            отправляются, кроме момента скачивания протокола. После подключения постоянного
-            хранилища они будут сохраняться в профиле лаборатории.
+            {{ _("Пока настройки хранятся только в этом браузере на этом устройстве и на сервер не отправляются, кроме момента скачивания протокола. После подключения постоянного хранилища они будут сохраняться в профиле лаборатории.") }}
         </div>
     </div>
 
@@ -165,8 +161,8 @@
         defaultsForm.querySelectorAll("input").forEach((input) => { values[input.name] = input.value.trim(); });
         const status = document.getElementById("d-status");
         status.textContent = PF.writeDefaults(values)
-            ? "Сохранено: будет подставляться в новые протоколы."
-            : "Не удалось сохранить в этом браузере.";
+            ? t("Сохранено: будет подставляться в новые протоколы.")
+            : t("Не удалось сохранить в этом браузере.");
     });
 
     // ---------- Папка для протоколов ----------
@@ -175,14 +171,14 @@
 
     async function showFolder() {
         if (!PF.folderSupported) {
-            folderStatus.textContent = "Этот браузер не умеет сохранять в выбранную папку. Файлы будут скачиваться обычным способом с именем «ФИО номер». Для автосохранения откройте приложение в Chrome или Edge на компьютере.";
+            folderStatus.textContent = t("Этот браузер не умеет сохранять в выбранную папку. Файлы будут скачиваться обычным способом с именем «ФИО номер». Для автосохранения откройте приложение в Chrome или Edge на компьютере.");
             document.getElementById("f-choose").disabled = true;
             return;
         }
         const folder = await PF.getFolder();
         folderStatus.textContent = folder && PF.readDefaults().autosave
-            ? `Протоколы сохраняются в папку «${folder.name}».`
-            : "Папка не выбрана: файлы скачиваются в папку загрузок браузера.";
+            ? t("Протоколы сохраняются в папку «{folder}».", { folder: folder.name })
+            : t("Папка не выбрана: файлы скачиваются в папку загрузок браузера.");
     }
 
     document.getElementById("f-choose").addEventListener("click", async () => {
@@ -210,7 +206,7 @@
     let logo = "";
 
     function showLogo() {
-        preview.innerHTML = logo ? `<img src="${logo}" alt="Логотип">` : '<span style="color:#555">Нет логотипа</span>';
+        preview.innerHTML = logo ? `<img src="${logo}" alt="${t("Логотип")}">` : '<span style="color:#555">' + t("Нет логотипа") + '</span>';
     }
 
     try {
@@ -236,11 +232,11 @@
             URL.revokeObjectURL(img.src);
             showLogo();
             status.className = "status-line";
-            status.textContent = "Логотип выбран. Нажмите «Сохранить».";
+            status.textContent = t("Логотип выбран. Нажмите «Сохранить».");
         };
         img.onerror = () => {
             status.className = "status-line error";
-            status.textContent = "Не удалось открыть изображение.";
+            status.textContent = t("Не удалось открыть изображение.");
         };
         img.src = URL.createObjectURL(file);
     });
@@ -253,10 +249,10 @@
         try {
             localStorage.setItem(KEY, JSON.stringify(data));
             status.className = "status-line";
-            status.textContent = "Сохранено в этом браузере.";
+            status.textContent = t("Сохранено в этом браузере.");
         } catch (e) {
             status.className = "status-line error";
-            status.textContent = "Не удалось сохранить: возможно, логотип слишком большой или хранилище браузера отключено.";
+            status.textContent = t("Не удалось сохранить: возможно, логотип слишком большой или хранилище браузера отключено.");
         }
     });
 
@@ -266,7 +262,7 @@
         logo = "";
         showLogo();
         status.className = "status-line";
-        status.textContent = "Настройки очищены.";
+        status.textContent = t("Настройки очищены.");
     });
 
 })();

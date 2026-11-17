@@ -1,6 +1,6 @@
 {% import "protocol_macros.html" as pf with context %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
 
 <meta charset="UTF-8">
@@ -35,26 +35,26 @@
     <h1 class="page-title">{{ title }}</h1>
 
     <p class="page-subtitle">
-        {% if protocol and request.args.get('from_case') %}Протокол создан из ИИ-анализа: проверьте данные, заключение и подпись
-        {% elif protocol %}Редактирование протокола из архива{% else %}Патогистологическое заключение · DOCX или PDF{% endif %}
+        {% if protocol and request.args.get('from_case') %}{{ _("Протокол создан из ИИ-анализа: проверьте данные, заключение и подпись") }}
+        {% elif protocol %}{{ _("Редактирование протокола из архива") }}{% else %}{{ _("Патогистологическое заключение · DOCX или PDF") }}{% endif %}
     </p>
 
     <div class="page-actions">
         {% if protocol %}
         <a class="link-back" href="{{ url_for('protocol_view', id=protocol.id) }}">
-            <i class="bi bi-arrow-left"></i> К карточке протокола
+            <i class="bi bi-arrow-left"></i> {{ _("К карточке протокола") }}
         </a>
         {% else %}
         <a class="link-back" href="{{ url_for('protocol_choose') }}">
-            <i class="bi bi-arrow-left"></i> Выбрать другой вид материала
+            <i class="bi bi-arrow-left"></i> {{ _("Выбрать другой вид материала") }}
         </a>
         {% endif %}
     </div>
 
     <div class="stepper">
-        <div class="step-pill active" data-pill="1"><b>1</b> Данные и макроскопия</div>
+        <div class="step-pill active" data-pill="1"><b>1</b> {{ _("Данные и макроскопия") }}</div>
         <div class="step-line"></div>
-        <div class="step-pill" data-pill="2"><b>2</b> Микроскопия и заключение</div>
+        <div class="step-pill" data-pill="2"><b>2</b> {{ _("Микроскопия и заключение") }}</div>
     </div>
 
 <form id="protocol-form" enctype="multipart/form-data" novalidate>
@@ -69,7 +69,7 @@
 
 <div class="top-bar">
     <button type="button" class="btn btn-ghost review-toggle" id="review-toggle" aria-pressed="false">
-        <i class="bi bi-arrow-repeat"></i> Пересмотр готового среза
+        <i class="bi bi-arrow-repeat"></i> {{ _("Пересмотр готового среза") }}
     </button>
     <input type="hidden" name="review" id="review-input" value="0">
     <div class="top-bar-lang">{{ pf.doc_lang_select() }}</div>
@@ -78,40 +78,40 @@
 <div class="glass-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-file-earmark-medical"></i> Данные исследования</h2>
-        <span class="review-badge" id="review-badge" hidden>Пересмотр готового среза</span>
+        <h2><i class="bi bi-file-earmark-medical"></i> {{ _("Данные исследования") }}</h2>
+        <span class="review-badge" id="review-badge" hidden>{{ _("Пересмотр готового среза") }}</span>
     </div>
 
     <div class="form-grid">
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-hash"></i></span>
-            <input type="text" name="research_number" placeholder="№ исследования (например, 2604 р (1-7)/26)" required>
+            <input type="text" name="research_number" placeholder="{{ _("№ исследования (например, 2604 р (1-7)/26)") }}" required>
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-calendar-event"></i></span>
-            <input type="text" name="admission_date" placeholder="Дата поступления материала" onfocus="this.type='date'">
+            <input type="text" name="admission_date" placeholder="{{ _("Дата поступления материала") }}" onfocus="this.type='date'">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-hospital"></i></span>
-            <input type="text" name="medical_center" placeholder="Направившее медицинское учреждение">
+            <input type="text" name="medical_center" placeholder="{{ _("Направившее медицинское учреждение") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-person"></i></span>
-            <input type="text" name="patient_name" placeholder="ФИО пациента" required>
+            <input type="text" name="patient_name" placeholder="{{ _("ФИО пациента") }}" required>
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-gender-ambiguous"></i></span>
             <div class="gender-box">
                 <label class="gender-option">
-                    <input type="radio" name="gender" value="Мужской"> Муж
+                    <input type="radio" name="gender" value="Мужской"> {{ _("Муж") }}
                 </label>
                 <label class="gender-option">
-                    <input type="radio" name="gender" value="Женский"> Жен
+                    <input type="radio" name="gender" value="Женский"> {{ _("Жен") }}
                 </label>
             </div>
         </div>
@@ -120,45 +120,45 @@
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-scissors"></i></span>
-            <input type="text" name="operation_type" placeholder="Тип операции">
+            <input type="text" name="operation_type" placeholder="{{ _("Тип операции") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-tags"></i></span>
             <input type="text" name="marking"
-                   placeholder="{% if kind == 'large' %}Маркировка материала: какие органы пришли, кол-во объектов{% else %}Маркировка материала, кол-во объектов{% endif %}">
+                   placeholder="{% if kind == 'large' %}{{ _("Маркировка материала: какие органы пришли, кол-во объектов") }}{% else %}{{ _("Маркировка материала, кол-во объектов") }}{% endif %}">
         </div>
 
         {{ pf.clinical_field() }}
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-person-badge"></i></span>
-            <input type="text" name="doctor" placeholder="ФИО лечащего врача">
+            <input type="text" name="doctor" placeholder="{{ _("ФИО лечащего врача") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-eyedropper"></i></span>
-            <input type="text" name="lab_worker" placeholder="ФИО лаборанта">
+            <input type="text" name="lab_worker" placeholder="{{ _("ФИО лаборанта") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-grid-3x3-gap"></i></span>
-            <input type="number" min="0" name="slides" placeholder="Количество стекол">
+            <input type="number" min="0" name="slides" placeholder="{{ _("Количество стекол") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-box-seam"></i></span>
-            <input type="number" min="0" name="cassettes" placeholder="Количество кассет">
+            <input type="number" min="0" name="cassettes" placeholder="{{ _("Количество кассет") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-palette"></i></span>
-            <input list="stains" name="stain_method" placeholder="Метод окраски">
+            <input list="stains" name="stain_method" placeholder="{{ _("Метод окраски") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-file-earmark-check"></i></span>
-            <input type="text" name="result_date" placeholder="Дата выдачи результата" onfocus="this.type='date'">
+            <input type="text" name="result_date" placeholder="{{ _("Дата выдачи результата") }}" onfocus="this.type='date'">
         </div>
 
     </div>
@@ -168,23 +168,23 @@
 <div class="glass-card" id="macro-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-rulers"></i> Макроскопическое описание</h2>
+        <h2><i class="bi bi-rulers"></i> {{ _("Макроскопическое описание") }}</h2>
     </div>
 
     {{ pf.macro_blocks(kind) }}
 
 {% if kind == 'large' %}
-    <label class="field-label" for="marking-notes">Наброски маркировки</label>
+    <label class="field-label" for="marking-notes">{{ _("Наброски маркировки") }}</label>
     <textarea id="marking-notes" name="marking_notes" style="min-height:80px"
-              placeholder="опухоль 1-2, линия резекции 3-4, лимфоузлы 5 6 7"></textarea>
+              placeholder="{{ _("опухоль 1-2, линия резекции 3-4, лимфоузлы 5 6 7") }}"></textarea>
 
     <button type="button" class="btn btn-generate" id="generate-marking">
-        <i class="bi bi-stars"></i> Сгенерировать маркировку
+        <i class="bi bi-stars"></i> {{ _("Сгенерировать маркировку") }}
     </button>
 
-    <label class="field-label" for="marking-text">Маркировка в документе (можно редактировать)</label>
+    <label class="field-label" for="marking-text">{{ _("Маркировка в документе (можно редактировать)") }}</label>
     <textarea name="marking_text" id="marking-text" style="min-height:70px"
-              placeholder="опухоль – 1-2, линия резекции – 3-4, лимфоузлы – 5-6-7."></textarea>
+              placeholder="{{ _("опухоль – 1-2, линия резекции – 3-4, лимфоузлы – 5-6-7.") }}"></textarea>
 {% endif %}
 
 </div>
@@ -193,7 +193,7 @@
     <span></span>
     <div class="right">
         <button type="button" class="btn btn-primary" id="to-step-2">
-            Далее <i class="bi bi-arrow-right"></i>
+            {{ _("Далее") }} <i class="bi bi-arrow-right"></i>
         </button>
     </div>
 </div>
@@ -209,14 +209,14 @@
 <div class="glass-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-person-vcard"></i> Пациент</h2>
+        <h2><i class="bi bi-person-vcard"></i> {{ _("Пациент") }}</h2>
         <a class="header-chip" id="header-chip" href="{{ url_for('settings') }}"></a>
     </div>
 
     <div class="patient-summary">
-        <div class="summary-tile"><span>ФИО пациента</span><b id="sum-name">—</b></div>
-        <div class="summary-tile"><span>Пол</span><b id="sum-gender">—</b></div>
-        <div class="summary-tile"><span>Дата рождения</span><b id="sum-birth">—</b></div>
+        <div class="summary-tile"><span>{{ _("ФИО пациента") }}</span><b id="sum-name">—</b></div>
+        <div class="summary-tile"><span>{{ _("Пол") }}</span><b id="sum-gender">—</b></div>
+        <div class="summary-tile"><span>{{ _("Дата рождения") }}</span><b id="sum-birth">—</b></div>
     </div>
 
 </div>
@@ -225,21 +225,21 @@
 <div class="glass-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-camera"></i> Фото макропрепарата</h2>
+        <h2><i class="bi bi-camera"></i> {{ _("Фото макропрепарата") }}</h2>
     </div>
 
     <div class="photo-slot macro-photo" data-photo-slot>
         <div class="photo-drop" data-photo-drop>
             <i class="bi bi-image"></i>
-            <span>Выберите фото с устройства — затем его можно повернуть и обрезать</span>
+            <span>{{ _("Выберите фото с устройства — затем его можно повернуть и обрезать") }}</span>
         </div>
         <div class="photo-buttons" data-photo-buttons hidden>
-            <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Повернуть / обрезать</button>
-            <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
+            <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> {{ _("Повернуть / обрезать") }}</button>
+            <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> {{ _("Удалить") }}</button>
         </div>
         <div class="capture-row camera-only">
-            <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> Сделать фото</button>
-            <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> Выбрать файл</button>
+            <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> {{ _("Сделать фото") }}</button>
+            <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> {{ _("Выбрать файл") }}</button>
         </div>
         <input type="file" accept="image/*" capture="environment" data-photo-camera hidden>
         <input type="file" name="macro_photo" accept="image/*">
@@ -252,13 +252,13 @@
 <div class="glass-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-journal-medical"></i> Патогистологические заключения</h2>
+        <h2><i class="bi bi-journal-medical"></i> {{ _("Патогистологические заключения") }}</h2>
     </div>
 
     <div id="conclusions"></div>
 
     <button type="button" class="btn add-conclusion" id="add-conclusion">
-        <i class="bi bi-plus-lg"></i> Добавить заключение
+        <i class="bi bi-plus-lg"></i> {{ _("Добавить заключение") }}
     </button>
 
 </div>
@@ -266,51 +266,50 @@
 <div class="glass-card">
 
     <div class="card-heading">
-        <h2><i class="bi bi-pen"></i> Подпись</h2>
+        <h2><i class="bi bi-pen"></i> {{ _("Подпись") }}</h2>
     </div>
 
     <div class="form-grid">
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-award"></i></span>
-            <input type="text" name="consultant_title" value="Консультант, д.м.н. профессор" placeholder="Должность и степень">
+            <input type="text" name="consultant_title" value="Консультант, д.м.н. профессор" placeholder="{{ _("Должность и степень") }}">
         </div>
 
         <div class="input-group">
             <span class="icon"><i class="bi bi-person-check"></i></span>
-            <input type="text" name="consultant_name" placeholder="ФИО консультанта">
+            <input type="text" name="consultant_name" placeholder="{{ _("ФИО консультанта") }}">
         </div>
 
     </div>
 
     <p class="hint">
-        В документе строка консультанта печатается заглавными буквами внизу второй страницы.
-        Печать и подпись не вставляются: документ подписывается вручную.
+        {{ _("В документе строка консультанта печатается заглавными буквами внизу второй страницы. Печать и подпись не вставляются: документ подписывается вручную.") }}
     </p>
 
     <button type="button" class="btn btn-ghost btn-small" id="remember-defaults">
-        <i class="bi bi-bookmark-check"></i> Запомнить лаборанта, метод окраски и подпись для следующих протоколов
+        <i class="bi bi-bookmark-check"></i> {{ _("Запомнить лаборанта, метод окраски и подпись для следующих протоколов") }}
     </button>
     <span class="hint" id="defaults-status"></span>
 
-    <label class="field-label">Примечание внизу документа</label>
+    <label class="field-label">{{ _("Примечание внизу документа") }}</label>
     <div class="note-preview">{{ note }}</div>
 
 </div>
 
 <div class="form-actions">
     <button type="button" class="btn btn-ghost" id="to-step-1">
-        <i class="bi bi-arrow-left"></i> Назад
+        <i class="bi bi-arrow-left"></i> {{ _("Назад") }}
     </button>
     <div class="right">
         <button type="button" class="btn btn-ghost" id="save-protocol">
-            <i class="bi bi-archive"></i> Сохранить в архив
+            <i class="bi bi-archive"></i> {{ _("Сохранить в архив") }}
         </button>
         <button type="button" class="btn btn-primary" data-download="docx">
-            <i class="bi bi-file-earmark-word"></i> Скачать DOCX
+            <i class="bi bi-file-earmark-word"></i> {{ _("Скачать DOCX") }}
         </button>
         <button type="button" class="btn btn-primary" data-download="pdf">
-            <i class="bi bi-file-earmark-pdf"></i> Скачать PDF
+            <i class="bi bi-file-earmark-pdf"></i> {{ _("Скачать PDF") }}
         </button>
     </div>
 </div>
@@ -329,47 +328,47 @@
 <template id="conclusion-template">
     <div class="conclusion-card" data-conclusion>
         <div class="conclusion-head">
-            <h3>Заключение <span data-number></span></h3>
+            <h3>{{ _("Заключение") }} <span data-number></span></h3>
             <button type="button" class="btn btn-danger btn-small" data-remove>
-                <i class="bi bi-x-lg"></i> Убрать
+                <i class="bi bi-x-lg"></i> {{ _("Убрать") }}
             </button>
         </div>
         <div class="conclusion-body">
             <div>
-                <label class="field-label">Патогистологическое заключение</label>
-                <input list="diagnoses" data-field="diagnosis" placeholder="Например, Протоковый инвазивный рак G-2">
+                <label class="field-label">{{ _("Патогистологическое заключение") }}</label>
+                <input list="diagnoses" data-field="diagnosis" placeholder="{{ _("Например, Протоковый инвазивный рак G-2") }}">
                 <button type="button" class="btn btn-generate" data-generate>
-                    <i class="bi bi-stars"></i> Сгенерировать микроописание
+                    <i class="bi bi-stars"></i> {{ _("Сгенерировать микроописание") }}
                 </button>
                 <div class="notice" data-notice></div>
-                <label class="field-label">Микроскопическое описание (можно редактировать)</label>
-                <textarea data-field="micro" placeholder="Нажмите «Сгенерировать микроописание» или введите текст вручную"></textarea>
+                <label class="field-label">{{ _("Микроскопическое описание (можно редактировать)") }}</label>
+                <textarea data-field="micro" placeholder="{{ _("Нажмите «Сгенерировать микроописание» или введите текст вручную") }}"></textarea>
                 <div class="icdo-row">
                     <div>
-                        <label class="field-label">Код МКБ-О</label>
-                        <input data-field="icdo" placeholder="например, 8500/3">
+                        <label class="field-label">{{ _("Код МКБ-О") }}</label>
+                        <input data-field="icdo" placeholder="{{ _("например, 8500/3") }}">
                     </div>
-                    <p class="hint">Код предлагается автоматически по заключению. Проверьте и при необходимости исправьте.</p>
+                    <p class="hint">{{ _("Код предлагается автоматически по заключению. Проверьте и при необходимости исправьте.") }}</p>
                 </div>
             </div>
             <div class="photo-slot" data-photo-slot>
-                <label class="field-label">Фото микропрепарата</label>
+                <label class="field-label">{{ _("Фото микропрепарата") }}</label>
                 <div class="photo-drop" data-photo-drop>
                     <i class="bi bi-image"></i>
-                    <span>Выберите фото гистологии с устройства</span>
+                    <span>{{ _("Выберите фото гистологии с устройства") }}</span>
                 </div>
                 <div class="photo-buttons" data-photo-buttons hidden>
-                    <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> Изменить</button>
-                    <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> Удалить</button>
+                    <button type="button" class="btn btn-ghost btn-small" data-photo-edit><i class="bi bi-crop"></i> {{ _("Изменить") }}</button>
+                    <button type="button" class="btn btn-danger btn-small" data-photo-remove><i class="bi bi-trash"></i> {{ _("Удалить") }}</button>
                 </div>
                 <div class="capture-row camera-only">
-                    <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> Сделать фото</button>
-                    <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> Выбрать файл</button>
+                    <button type="button" class="capture-btn" data-photo-take><i class="bi bi-camera"></i> {{ _("Сделать фото") }}</button>
+                    <button type="button" class="capture-btn capture-btn-ghost" data-photo-pick><i class="bi bi-folder2-open"></i> {{ _("Выбрать файл") }}</button>
                 </div>
                 <input type="file" accept="image/*" capture="environment" data-photo-camera hidden>
                 <input type="file" data-field="photo" accept="image/*">
                 <input type="hidden" data-field="photo_existing" data-photo-existing>
-                <p class="hint">Подбор иллюстраций из библиотеки появится после обучения нейросети.</p>
+                <p class="hint">{{ _("Подбор иллюстраций из библиотеки появится после обучения нейросети.") }}</p>
             </div>
         </div>
     </div>
@@ -378,18 +377,18 @@
 <!-- Редактор фото: поворот и обрезка -->
 <div class="editor-backdrop" id="photo-editor" hidden>
     <div class="editor">
-        <h3>Редактирование фото</h3>
-        <p>Поверните фото кнопками, затем выделите мышью или пальцем область для обрезки.</p>
+        <h3>{{ _("Редактирование фото") }}</h3>
+        <p>{{ _("Поверните фото кнопками, затем выделите мышью или пальцем область для обрезки.") }}</p>
         <div class="editor-stage"><canvas id="editor-canvas"></canvas></div>
         <div class="editor-tools">
             <div>
-                <button type="button" class="btn btn-ghost btn-small" data-rotate="-90"><i class="bi bi-arrow-counterclockwise"></i> Повернуть влево</button>
-                <button type="button" class="btn btn-ghost btn-small" data-rotate="90"><i class="bi bi-arrow-clockwise"></i> Повернуть вправо</button>
-                <button type="button" class="btn btn-ghost btn-small" id="editor-reset"><i class="bi bi-bounding-box"></i> Сбросить обрезку</button>
+                <button type="button" class="btn btn-ghost btn-small" data-rotate="-90"><i class="bi bi-arrow-counterclockwise"></i> {{ _("Повернуть влево") }}</button>
+                <button type="button" class="btn btn-ghost btn-small" data-rotate="90"><i class="bi bi-arrow-clockwise"></i> {{ _("Повернуть вправо") }}</button>
+                <button type="button" class="btn btn-ghost btn-small" id="editor-reset"><i class="bi bi-bounding-box"></i> {{ _("Сбросить обрезку") }}</button>
             </div>
             <div>
-                <button type="button" class="btn btn-ghost btn-small" id="editor-cancel">Отмена</button>
-                <button type="button" class="btn btn-primary btn-small" id="editor-apply"><i class="bi bi-check-lg"></i> Применить</button>
+                <button type="button" class="btn btn-ghost btn-small" id="editor-cancel">{{ _("Отмена") }}</button>
+                <button type="button" class="btn btn-primary btn-small" id="editor-apply"><i class="bi bi-check-lg"></i> {{ _("Применить") }}</button>
             </div>
         </div>
     </div>
