@@ -376,7 +376,7 @@
     /* ---------- Результат анализа ---------- */
 
     .result-page{
-        padding:16px 16px 32px;
+        padding:68px 16px 32px;
     }
 
     .top-panel{
@@ -494,7 +494,7 @@
     }
 
     body.page-admin-consultants{
-        padding:20px 16px;
+        padding:68px 16px 20px;
     }
 
     .page-admin-consultants .card{

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="ru">
+<html lang="{{ current_lang }}">
 
 <head>
 
@@ -12,7 +12,7 @@ content="width=device-width,initial-scale=1.0">
 
 <title>
 
-PAITHOLOGY | Результат анализа
+{{ _("PAITHOLOGY | Результат анализа") }}
 
 </title>
 
@@ -29,6 +29,9 @@ href="{{ url_for('static', filename='result.css') }}"
 
 <body>
 
+{% set lang_next = url_for('case_detail', id=case_id) if case_id else url_for('home') %}
+{% include "lang_switch.html" %}
+
 <div class="result-page">
 
 
@@ -42,7 +45,7 @@ class="back-btn"
 
 >
 
-← Назад к загрузке
+{{ _("← Назад к загрузке") }}
 
 </a>
 
@@ -51,7 +54,7 @@ class="back-btn"
 
 <button type="button" class="download-btn" data-case-report="docx"
         data-url="{{ url_for('report', id=case_id) }}" data-csrf="{{ csrf_token() }}">
-📄 Скачать отчёт DOCX
+{{ _("📄 Скачать отчёт DOCX") }}
 </button>
 
 <button type="button" class="download-btn" data-case-report="pdf"
@@ -62,7 +65,7 @@ class="back-btn"
 
 <button class="share-btn">
 
-🔗 Поделиться
+{{ _("🔗 Поделиться") }}
 
 </button>
 
@@ -73,7 +76,7 @@ class="back-btn"
 
 <h1>
 
-Результаты анализа
+{{ _("Результаты анализа") }}
 
 </h1>
 
@@ -91,7 +94,7 @@ class="back-btn"
 
 <div class="preview-title">
 
-Предпросмотр изображений
+{{ _("Предпросмотр изображений") }}
 
 </div>
 
@@ -117,7 +120,7 @@ src="/{{ images[0] }}"
 
 class="viewer-image"
 
-alt="Изображение"
+alt="{{ _("Изображение") }}"
 
 >
 
@@ -164,7 +167,7 @@ class="preview-thumb"
 
 onclick="goToImage({{ loop.index }})"
 
-alt="Миниатюра"
+alt="{{ _("Миниатюра") }}"
 
 >
 
@@ -179,7 +182,7 @@ alt="Миниатюра"
 
 <h3>
 
-Микроскопическое описание
+{{ _("Микроскопическое описание") }}
 
 </h3>
 
@@ -206,7 +209,7 @@ alt="Миниатюра"
 
 <h2>
 
-Заключение
+{{ _("Заключение") }}
 
 </h2>
 
@@ -232,7 +235,7 @@ alt="Миниатюра"
 
 <h3>
 
-Ключевые находки
+{{ _("Ключевые находки") }}
 
 </h3>
 
@@ -255,7 +258,7 @@ alt="Миниатюра"
 
 <span>
 
-Пациент
+{{ _("Пациент") }}
 
 </span>
 
@@ -272,7 +275,7 @@ alt="Миниатюра"
 
 <span>
 
-Орган
+{{ _("Орган") }}
 
 </span>
 
@@ -289,7 +292,7 @@ alt="Миниатюра"
 
 <span>
 
-Пол
+{{ _("Пол") }}
 
 </span>
 
@@ -306,7 +309,7 @@ alt="Миниатюра"
 
 <span>
 
-Клинические данные
+{{ _("Клинические данные") }}
 
 </span>
 
@@ -338,7 +341,7 @@ alt="Миниатюра"
 
 <span>
 
-Уверенность модели
+{{ _("Уверенность модели") }}
 
 </span>
 
@@ -360,7 +363,7 @@ max="100"
 
 <span>
 
-Согласованность
+{{ _("Согласованность") }}
 
 </span>
 
@@ -384,17 +387,16 @@ max="100"
 
 <button class="consult-btn"
         onclick="window.location.href='{{ url_for('consultants') }}'">
-    🩺 Отправить на консультацию
+    {{ _("🩺 Отправить на консультацию") }}
 </button>
 
 <form method="POST" action="{{ url_for('case_to_protocol', id=case_id) }}" class="protocol-actions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="protocol-actions-title">📝 Оформить протокол из этого анализа</div>
-    <p>Откроется редактор протокола с данными, заключением ИИ, микроописанием и снимком: там можно
-       перевести, исправить, добавить подпись и скачать DOCX или PDF.</p>
+    <div class="protocol-actions-title">{{ _("📝 Оформить протокол из этого анализа") }}</div>
+    <p>{{ _("Откроется редактор протокола с данными, заключением ИИ, микроописанием и снимком: там можно перевести, исправить, добавить подпись и скачать DOCX или PDF.") }}</p>
     <div class="protocol-actions-buttons">
-        <button type="submit" name="kind" value="small">Малый биопсийный материал</button>
-        <button type="submit" name="kind" value="large">Большой операционный материал</button>
+        <button type="submit" name="kind" value="small">{{ _("Малый биопсийный материал") }}</button>
+        <button type="submit" name="kind" value="large">{{ _("Большой операционный материал") }}</button>
     </div>
 </form>
 

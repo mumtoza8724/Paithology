@@ -413,6 +413,7 @@ def isolated_app(tmp_path):
             shutil.copy(os.path.join(ROOT, name), tmp_path / name)
 
     shutil.copytree(os.path.join(ROOT, "templates"), tmp_path / "templates")
+    shutil.copytree(os.path.join(ROOT, "translations"), tmp_path / "translations")
 
     return tmp_path
 

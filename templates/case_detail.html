@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 
 <head>
 
@@ -10,7 +10,7 @@ content="width=device-width, initial-scale=1.0">
 
 <title>
 
-PAITHOLOGY | Исследование №{{case.id}}
+PAITHOLOGY | {{ _("Исследование №{number}", number=case.id) }}
 
 </title>
 
@@ -88,6 +88,17 @@ gap:30px;
 .grid{
 
 grid-template-columns:1fr;
+
+}
+
+}
+
+/* телефон: место сверху под переключатель языков */
+@media(max-width:768px){
+
+body{
+
+padding:68px 16px 24px;
 
 }
 
@@ -250,6 +261,8 @@ color:white;
 
 <body>
 
+{% include "lang_switch.html" %}
+
 <div class="container">
 
 <div class="header">
@@ -258,7 +271,7 @@ color:white;
 
 <div class="title">
 
-Исследование №{{ display_number }}
+{{ _("Исследование №{number}", number=display_number) }}
 
 </div>
 
@@ -284,7 +297,7 @@ color:white;
 
 <div class="empty-photo">
 
-Изображение отсутствует
+{{ _("Изображение отсутствует") }}
 
 </div>
 
@@ -298,7 +311,7 @@ color:white;
 
 <div class="section-title">
 
-Основная информация
+{{ _("Основная информация") }}
 
 </div>
 
@@ -308,7 +321,7 @@ color:white;
 
 <div class="label">
 
-Пациент
+{{ _("Пациент") }}
 
 </div>
 
@@ -324,7 +337,7 @@ color:white;
 
 <div class="label">
 
-Дата рождения
+{{ _("Дата рождения") }}
 
 </div>
 
@@ -340,7 +353,7 @@ color:white;
 
 <div class="label">
 
-Дата поступления
+{{ _("Дата поступления") }}
 
 </div>
 
@@ -356,7 +369,7 @@ color:white;
 
 <div class="label">
 
-Орган
+{{ _("Орган") }}
 
 </div>
 
@@ -372,7 +385,7 @@ color:white;
 
 <div class="label">
 
-Клинический диагноз
+{{ _("Клинический диагноз") }}
 
 </div>
 
@@ -388,7 +401,7 @@ color:white;
 
 <div class="label">
 
-Номер исследования
+{{ _("Номер исследования") }}
 
 </div>
 
@@ -408,7 +421,7 @@ color:white;
 
 <div class="section-title">
 
-Микроскопическое описание
+{{ _("Микроскопическое описание") }}
 
 </div>
 
@@ -424,7 +437,7 @@ color:white;
 
 <div class="section-title">
 
-Патоморфологическое заключение
+{{ _("Патоморфологическое заключение") }}
 
 </div>
 
@@ -442,7 +455,7 @@ color:white;
 
 <div class="section-title">
 
-Уверенность искусственного интеллекта
+{{ _("Уверенность искусственного интеллекта") }}
 
 </div>
 
@@ -461,26 +474,26 @@ color:white;
 <button type="button" class="btn doc" data-case-report="docx"
         data-url="{{ url_for('report', id=case.id) }}" data-csrf="{{ csrf_token() }}"
         style="font-family:inherit">
-    Скачать DOCX
+    {{ _("Скачать DOCX") }}
 </button>
 
 <button type="button" class="btn doc" data-case-report="pdf"
         data-url="{{ url_for('report', id=case.id) }}" data-csrf="{{ csrf_token() }}"
         style="font-family:inherit">
-    Скачать PDF
+    {{ _("Скачать PDF") }}
 </button>
 
 <form method="POST" action="{{ url_for('case_to_protocol', id=case.id) }}" style="display:inline">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="kind" value="small">
-    <button type="submit" class="btn doc" style="font-family:inherit">Оформить протокол</button>
+    <button type="submit" class="btn doc" style="font-family:inherit">{{ _("Оформить протокол") }}</button>
 </form>
 
 <a
 href="/cases"
 class="btn back">
 
-Назад к архиву
+{{ _("Назад к архиву") }}
 
 </a>
 
@@ -497,7 +510,7 @@ type="submit"
 class="btn delete"
 style="font-family:inherit">
 
-Удалить
+{{ _("Удалить") }}
 
 </button>
 

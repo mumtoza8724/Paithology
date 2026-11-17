@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>PAITHOLOGY | Архив исследований</title>
+<title>{{ _("PAITHOLOGY | Архив исследований") }}</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -288,7 +288,7 @@ font-size:18px;
 
 <div class="title">
 
-Архив исследований
+{{ _("Архив исследований") }}
 
 </div>
 
@@ -309,36 +309,36 @@ font-size:18px;
 <input
     type="text"
     name="research_number"
-    placeholder="Номер исследования"
+    placeholder="{{ _("Номер исследования") }}"
     value="{{ request.args.get('research_number','') }}"
 >
 
 <input
 type="text"
 name="patient_name"
-placeholder="ФИО пациента"
+placeholder="{{ _("ФИО пациента") }}"
 value="{{ request.args.get('patient_name','') }}">
 
 <input
 type="text"
 name="organ"
-placeholder="Орган"
+placeholder="{{ _("Орган") }}"
 value="{{ request.args.get('organ','') }}">
 
     <input
     type="text"
     name="conclusion"
-    placeholder="Заключение">
+    placeholder="{{ _("Заключение") }}">
 
 <input
     type="text"
     name="admission_date"
-    placeholder="Дата поступления"
+    placeholder="{{ _("Дата поступления") }}"
     onfocus="this.type='date'">
 
 <button type="submit">
 
-Поиск
+{{ _("Поиск") }}
 
 </button>
 
@@ -357,7 +357,7 @@ value="{{ request.args.get('organ','') }}">
     <div class="card-top">
 
         <div class="case-id">
-            Исследование №{{ case.display_number }}
+            {{ _("Исследование №{number}", number=case.display_number) }}
         </div>
 
         <div class="badge">
@@ -375,7 +375,7 @@ value="{{ request.args.get('organ','') }}">
         <div class="info-box">
 
             <div class="label">
-                Орган
+                {{ _("Орган") }}
             </div>
 
             <div class="value">
@@ -387,7 +387,7 @@ value="{{ request.args.get('organ','') }}">
         <div class="info-box">
 
             <div class="label">
-                Дата поступления
+                {{ _("Дата поступления") }}
             </div>
 
             <div class="value">
@@ -399,7 +399,7 @@ value="{{ request.args.get('organ','') }}">
         <div class="info-box">
 
             <div class="label">
-                Дата рождения
+                {{ _("Дата рождения") }}
             </div>
 
             <div class="value">
@@ -411,7 +411,7 @@ value="{{ request.args.get('organ','') }}">
         <div class="info-box">
 
             <div class="label">
-                Клинический диагноз
+                {{ _("Клинический диагноз") }}
             </div>
 
             <div class="value">
@@ -425,7 +425,7 @@ value="{{ request.args.get('organ','') }}">
     <div class="description">
 
         <div class="description-title">
-            Микроскопическое описание
+            {{ _("Микроскопическое описание") }}
         </div>
 
         <div class="description-text">
@@ -440,7 +440,7 @@ value="{{ request.args.get('organ','') }}">
            href="{{ url_for('case_detail', id=case.id) }}">
 
             <button type="button">
-                Открыть исследование
+                {{ _("Открыть исследование") }}
             </button>
 
         </a>
@@ -455,7 +455,7 @@ value="{{ request.args.get('organ','') }}">
 
 <div class="empty">
 
-    Исследования не найдены
+    {{ _("Исследования не найдены") }}
 
 </div>
 

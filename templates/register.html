@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_lang }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Регистрация | PAITHOLOGY</title>
+<title>{{ _("Регистрация | PAITHOLOGY") }}</title>
 
 <style>
 
@@ -150,6 +150,8 @@ button:hover{
 
 <body>
 
+{% include "lang_switch.html" %}
+
 <div class="card">
 
 <img
@@ -162,7 +164,7 @@ PAITHOLOGY
 </h1>
 
 <p class="subtitle">
-Создание аккаунта
+{{ _("Создание аккаунта") }}
 </p>
 
 <form method="POST">
@@ -172,19 +174,19 @@ PAITHOLOGY
 <input
 type="text"
 name="username"
-placeholder="Логин"
+placeholder="{{ _("Логин") }}"
 required
 >
 
 <input
 type="password"
 name="password"
-placeholder="Пароль"
+placeholder="{{ _("Пароль") }}"
 required
 >
 
 <button type="submit">
-Зарегистрироваться
+{{ _("Зарегистрироваться") }}
 </button>
 
 </form>
@@ -192,7 +194,7 @@ required
 <div class="link">
 
 <a href="/login">
-Уже есть аккаунт?
+{{ _("Уже есть аккаунт?") }}
 </a>
 
 </div>

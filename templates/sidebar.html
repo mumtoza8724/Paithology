@@ -1,3 +1,5 @@
+{% include "lang_switch.html" %}
+
 <div class="sidebar" id="sidebar">
 
     <div class="sidebar-header">
@@ -22,7 +24,7 @@ stroke-width="2"/>
 
 </svg>
 
-<span>Главная</span>
+<span>{{ _("Главная") }}</span>
 
 </a>
 
@@ -41,7 +43,7 @@ stroke-width="2"/>
 
 </svg>
 
-<span>Консультанты</span>
+<span>{{ _("Консультанты") }}</span>
 
 </a>
 
@@ -73,7 +75,7 @@ stroke-width="2"/>
 
 </svg>
 
-<span>Стать консультантом</span>
+<span>{{ _("Стать консультантом") }}</span>
 
 </a>
 
@@ -92,7 +94,7 @@ stroke-width="2"/>
 
 </svg>
 
-<span>Архив исследований</span>
+<span>{{ _("Архив исследований") }}</span>
 
 </a>
 
@@ -113,7 +115,7 @@ stroke-linecap="round"/>
 
 </svg>
 
-<span>Создать протокол</span>
+<span>{{ _("Создать протокол") }}</span>
 
 </a>
 
@@ -134,7 +136,7 @@ stroke-linecap="round"/>
 
 </svg>
 
-<span>Архив протоколов</span>
+<span>{{ _("Архив протоколов") }}</span>
 
 </a>
 
@@ -153,7 +155,7 @@ stroke="currentColor"
 stroke-width="2"/>
 
 </svg>
-    <span>Настройки</span>
+    <span>{{ _("Настройки") }}</span>
 </a>
 
 <a href="/help" class="menu-item">
@@ -185,7 +187,7 @@ fill="currentColor"/>
 
 </svg>
 
-<span>Справка</span>
+<span>{{ _("Справка") }}</span>
 
 </a>
 
@@ -194,7 +196,7 @@ fill="currentColor"/>
     <div class="sidebar-footer">
     <a href="/logout" class="menu-item"
        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-        Выход
+        {{ _("Выход") }}
     </a>
     <form id="logout-form" method="POST" action="/logout" style="display:none">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

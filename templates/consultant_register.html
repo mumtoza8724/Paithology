@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="ru">
+<html lang="{{ current_lang }}">
 
 <head>
 
@@ -59,7 +59,7 @@ href="{{ url_for('static', filename='sidebar.css') }}">
 
     <span>
 
-        Изменить фото
+        {{ _("Изменить фото") }}
 
     </span>
 
@@ -70,7 +70,7 @@ href="{{ url_for('static', filename='sidebar.css') }}">
         <h3 class="photo-title"
             id="photo-title">
 
-            Фото профиля <small>(необязательно)</small>
+            {{ _("Фото профиля") }} <small>{{ _("(необязательно)") }}</small>
 
 </h3>
 
@@ -79,7 +79,7 @@ type="button"
 id="change-photo-btn"
 class="photo-button">
 
-📤 Загрузить фотографию
+{{ _("📤 Загрузить фотографию") }}
 
 </button>
 
@@ -89,7 +89,7 @@ JPG • PNG • WEBP
 
 <br>
 
-до 5 МБ
+{{ _("до 5 МБ") }}
 
 </p>
 
@@ -103,20 +103,20 @@ JPG • PNG • WEBP
 
         <h1>
 
-            Регистрация морфолога-консультанта
+            {{ _("Регистрация морфолога-консультанта") }}
 
         </h1>
 
         <p>
 
-            Присоединяйтесь к международной сети экспертов PAITHOLOGY
+            {{ _("Присоединяйтесь к международной сети экспертов PAITHOLOGY") }}
 
         </p>
 
 
             <h2>
 
-                Личная информация
+                {{ _("Личная информация") }}
 
             </h2>
 
@@ -124,11 +124,11 @@ JPG • PNG • WEBP
 
                 <input
                 name="first_name"
-                placeholder="Имя">
+                placeholder="{{ _("Имя") }}">
 
                 <input
                 name="last_name"
-                placeholder="Фамилия">
+                placeholder="{{ _("Фамилия") }}">
 
                 <input
                 type="email"
@@ -139,49 +139,45 @@ JPG • PNG • WEBP
 
                <select name="degree" class="form-select">
 
-    <option value="" selected disabled hidden>
-        Научная степень
-    </option>
+    <option value="" selected disabled hidden>{{ _("Научная степень") }}</option>
 
-    <option>Без степени</option>
+    <option value="Без степени">{{ _("Без степени") }}</option>
     <option>PhD</option>
-    <option>Кандидат медицинских наук</option>
-    <option>Доктор медицинских наук</option>
-    <option>Профессор</option>
+    <option value="Кандидат медицинских наук">{{ _("Кандидат медицинских наук") }}</option>
+    <option value="Доктор медицинских наук">{{ _("Доктор медицинских наук") }}</option>
+    <option value="Профессор">{{ _("Профессор") }}</option>
 
 </select>
 
                 <select name="country" class="form-select">
-    <option value="" selected disabled hidden>
-        Страна
-    </option>
+    <option value="" selected disabled hidden>{{ _("Страна") }}</option>
 
-    <option>Узбекистан</option>
-    <option>Россия</option>
-    <option>Казахстан</option>
-    <option>Кыргызстан</option>
-    <option>Таджикистан</option>
-    <option>Туркменистан</option>
-    <option>Азербайджан</option>
-    <option>Армения</option>
-    <option>Грузия</option>
+    <option value="Узбекистан">{{ _("Узбекистан") }}</option>
+    <option value="Россия">{{ _("Россия") }}</option>
+    <option value="Казахстан">{{ _("Казахстан") }}</option>
+    <option value="Кыргызстан">{{ _("Кыргызстан") }}</option>
+    <option value="Таджикистан">{{ _("Таджикистан") }}</option>
+    <option value="Туркменистан">{{ _("Туркменистан") }}</option>
+    <option value="Азербайджан">{{ _("Азербайджан") }}</option>
+    <option value="Армения">{{ _("Армения") }}</option>
+    <option value="Грузия">{{ _("Грузия") }}</option>
 
-    <option>Турция</option>
-    <option>Германия</option>
-    <option>Франция</option>
-    <option>Италия</option>
-    <option>Испания</option>
-    <option>Великобритания</option>
+    <option value="Турция">{{ _("Турция") }}</option>
+    <option value="Германия">{{ _("Германия") }}</option>
+    <option value="Франция">{{ _("Франция") }}</option>
+    <option value="Италия">{{ _("Италия") }}</option>
+    <option value="Испания">{{ _("Испания") }}</option>
+    <option value="Великобритания">{{ _("Великобритания") }}</option>
 
-    <option>США</option>
-    <option>Канада</option>
+    <option value="США">{{ _("США") }}</option>
+    <option value="Канада">{{ _("Канада") }}</option>
 
-    <option>Китай</option>
-    <option>Япония</option>
-    <option>Южная Корея</option>
+    <option value="Китай">{{ _("Китай") }}</option>
+    <option value="Япония">{{ _("Япония") }}</option>
+    <option value="Южная Корея">{{ _("Южная Корея") }}</option>
 
-    <option>Индия</option>
-    <option>ОАЭ</option>
+    <option value="Индия">{{ _("Индия") }}</option>
+    <option value="ОАЭ">{{ _("ОАЭ") }}</option>
 
 </select>
 
@@ -189,7 +185,7 @@ JPG • PNG • WEBP
                 <input
                 name="city"
 
-                placeholder="Город">
+                placeholder="{{ _("Город") }}">
 
             </div>
 
@@ -198,7 +194,7 @@ JPG • PNG • WEBP
 
             name="organization"
 
-            placeholder="Медицинский центр / Организация">
+            placeholder="{{ _("Медицинский центр / Организация") }}">
 
 
             <div class="grid">
@@ -207,22 +203,20 @@ JPG • PNG • WEBP
 
                 name="position"
 
-                placeholder="Должность">
+                placeholder="{{ _("Должность") }}">
 
 
                 <select name="experience" class="form-select">
 
-   <option value="" selected disabled hidden>
-        Стаж работы
-    </option>
+   <option value="" selected disabled hidden>{{ _("Стаж работы") }}</option>
 
-    <option>До 1 года</option>
-    <option>1–3 года</option>
-    <option>3–5 лет</option>
-    <option>5–10 лет</option>
-    <option>10–20 лет</option>
-    <option>20–30 лет</option>
-    <option>Более 30 лет</option>
+    <option value="До 1 года">{{ _("До 1 года") }}</option>
+    <option value="1–3 года">{{ _("1–3 года") }}</option>
+    <option value="3–5 лет">{{ _("3–5 лет") }}</option>
+    <option value="5–10 лет">{{ _("5–10 лет") }}</option>
+    <option value="10–20 лет">{{ _("10–20 лет") }}</option>
+    <option value="20–30 лет">{{ _("20–30 лет") }}</option>
+    <option value="Более 30 лет">{{ _("Более 30 лет") }}</option>
 
 </select>
 
@@ -232,7 +226,7 @@ JPG • PNG • WEBP
 
             <h2>
 
-                Специализация
+                {{ _("Специализация") }}
 
             </h2>
 
@@ -245,7 +239,7 @@ JPG • PNG • WEBP
 
 <img src="{{ url_for('static', filename='icons/gastro.svg') }}">
 
-<span>ЖКТ</span>
+<span>{{ _("ЖКТ") }}</span>
 
 </label>
 
@@ -256,7 +250,7 @@ JPG • PNG • WEBP
 
 <img src="{{ url_for('static', filename='icons/breast.svg') }}">
 
-<span>Молочная железа</span>
+<span>{{ _("Молочная железа") }}</span>
 
 </label>
 
@@ -267,7 +261,7 @@ JPG • PNG • WEBP
 
 <img src="{{ url_for('static', filename='icons/skin.svg') }}">
 
-<span>Кожа</span>
+<span>{{ _("Кожа") }}</span>
 
 </label>
 
@@ -278,7 +272,7 @@ JPG • PNG • WEBP
 
 <img src="{{ url_for('static', filename='icons/uterus.svg') }}">
 
-<span>Матка</span>
+<span>{{ _("Матка") }}</span>
 
 </label>
 
@@ -289,7 +283,7 @@ JPG • PNG • WEBP
 
 <img src="{{ url_for('static', filename='icons/lymph.svg') }}">
 
-<span>Лимфомы</span>
+<span>{{ _("Лимфомы") }}</span>
 
 </label>
 
@@ -300,14 +294,14 @@ JPG • PNG • WEBP
            value="Другое">
 
     <img src="{{ url_for('static', filename='icons/plus.svg') }}">
-    <span>Другое</span>
+    <span>{{ _("Другое") }}</span>
 </label>
 
 <input
     type="text"
     id="other-specialty"
     name="other_specialty"
-    placeholder="Введите специализацию"
+    placeholder="{{ _("Введите специализацию") }}"
     style="display:none;">
 
 </div>
@@ -316,7 +310,7 @@ JPG • PNG • WEBP
 
             <h2>
 
-                Языки
+                {{ _("Языки") }}
 
             </h2>
 
@@ -327,7 +321,7 @@ JPG • PNG • WEBP
 
 <input type="checkbox" name="languages" value="Русский">
 
-<span>Русский</span>
+<span>{{ _("Русский") }}</span>
 
 </label>
 
@@ -336,7 +330,7 @@ JPG • PNG • WEBP
 
 <input type="checkbox" name="languages" value="Английский">
 
-<span>Английский</span>
+<span>{{ _("Английский") }}</span>
 
 </label>
 
@@ -345,7 +339,7 @@ JPG • PNG • WEBP
 
 <input type="checkbox" name="languages" value="Узбекский">
 
-<span>Узбекский</span>
+<span>{{ _("Узбекский") }}</span>
 
 </label>
 
@@ -355,14 +349,14 @@ JPG • PNG • WEBP
 
             <h2>
 
-                Платёжные реквизиты
+                {{ _("Платёжные реквизиты") }}
 
             </h2>
 
 
             <p>
 
-                Используются для автоматического перечисления средств.
+                {{ _("Используются для автоматического перечисления средств.") }}
 
             </p>
 
@@ -370,13 +364,11 @@ JPG • PNG • WEBP
     <div class="payment-icon">ℹ</div>
 
     <div>
-        <strong>Международные выплаты</strong>
+        <strong>{{ _("Международные выплаты") }}</strong>
 
         <p>
-            Для получения выплат рекомендуем использовать
-            международную банковскую карту <b>Visa</b> или
-            <b>Mastercard</b>. Это позволит получать выплаты
-            от пользователей из любой страны.
+            {{ _("Для получения выплат рекомендуем использовать международную банковскую карту") }} <b>Visa</b> {{ _("или") }}
+            <b>Mastercard</b>{{ _(". Это позволит получать выплаты от пользователей из любой страны.") }}
         </p>
     </div>
 </div>
@@ -389,19 +381,19 @@ JPG • PNG • WEBP
 
                 name="card"
 
-                placeholder="Номер карты">
+                placeholder="{{ _("Номер карты") }}">
 
 
                 <input
 
                 name="owner"
 
-                placeholder="Имя владельца карты">
+                placeholder="{{ _("Имя владельца карты") }}">
 
                 <div class="price-block">
 
     <label for="consult_price">
-        Стоимость консультации
+        {{ _("Стоимость консультации") }}
     </label>
 
     <input
@@ -428,7 +420,7 @@ JPG • PNG • WEBP
 
             <h2>
 
-                Время ответа
+                {{ _("Время ответа") }}
 
             </h2>
 
@@ -442,7 +434,7 @@ type="radio"
 name="response_time"
 value="1">
 
-до 1 часа
+{{ _("до 1 часа") }}
 
 </label>
 
@@ -453,7 +445,7 @@ type="radio"
 name="response_time"
 value="6">
 
-до 6 часов
+{{ _("до 6 часов") }}
 
 </label>
 
@@ -464,7 +456,7 @@ type="radio"
 name="response_time"
 value="24">
 
-до 24 часов
+{{ _("до 24 часов") }}
 
 </label>
 
@@ -475,7 +467,7 @@ type="radio"
 name="response_time"
 value="48">
 
-до 48 часов
+{{ _("до 48 часов") }}
 
 </label>
 
@@ -483,25 +475,25 @@ value="48">
 
             <div class="verification-card">
 
-<h2>Верификация эксперта</h2>
+<h2>{{ _("Верификация эксперта") }}</h2>
 
 <p>
 
-Загрузите документы для подтверждения квалификации.
+{{ _("Загрузите документы для подтверждения квалификации.") }}
 
 </p>
 
 <ul>
 
-<li>Диплом врача</li>
+<li>{{ _("Диплом врача") }}</li>
 
-<li>Сертификат специалиста</li>
+<li>{{ _("Сертификат специалиста") }}</li>
 
-<li>Лицензия</li>
+<li>{{ _("Лицензия") }}</li>
 
-<li>CV / резюме</li>
+<li>{{ _("CV / резюме") }}</li>
 
-<li>Научные публикации (необязательно)</li>
+<li>{{ _("Научные публикации (необязательно)") }}</li>
 
 </ul>
 
@@ -519,9 +511,9 @@ hidden>
 
     <img src="{{ url_for('static', filename='icons/upload.svg') }}" class="drop-icon">
 
-    <h3>Перетащите документы сюда</h3>
+    <h3>{{ _("Перетащите документы сюда") }}</h3>
 
-    <p>или нажмите для выбора</p>
+    <p>{{ _("или нажмите для выбора") }}</p>
 
     <span>PDF • DOC • DOCX • JPG • PNG</span>
 
@@ -529,7 +521,7 @@ hidden>
 
 <div id="selected-files">
 
-Файлы не выбраны
+{{ _("Файлы не выбраны") }}
 
 </div>
 
@@ -551,12 +543,12 @@ hidden>
 
     <div class="terms-text">
 
-        <strong>Я принимаю условия платформы PAITHOLOGY</strong>
+        <strong>{{ _("Я принимаю условия платформы PAITHOLOGY") }}</strong>
 
         <br>
 
         <small>
-            Нажимая кнопку регистрации, вы соглашаетесь с условиями использования платформы.
+            {{ _("Нажимая кнопку регистрации, вы соглашаетесь с условиями использования платформы.") }}
         </small>
 
     </div>
@@ -565,7 +557,7 @@ hidden>
 
             <button>
 
-                Присоединиться к сети консультантов
+                {{ _("Присоединиться к сети консультантов") }}
 
             </button>
 
@@ -577,8 +569,7 @@ hidden>
 
         <h2>
 
-            Преимущества работы
-            на платформе PAITHOLOGY
+            {{ _("Преимущества работы на платформе PAITHOLOGY") }}
 
         </h2>
 
@@ -594,16 +585,14 @@ hidden>
 
                 <h3>
 
-                    Международная сеть экспертов
+                    {{ _("Международная сеть экспертов") }}
 
                 </h3>
 
 
                 <p>
 
-                    Сотрудничайте
-                    с ведущими морфологами
-                    из 25+ стран.
+                    {{ _("Сотрудничайте с ведущими морфологами из 25+ стран.") }}
 
                 </p>
 
@@ -623,14 +612,14 @@ hidden>
 
                 <h3>
 
-                    Поддержка диагностики
+                    {{ _("Поддержка диагностики") }}
 
                     </h3>
 
 
                 <p>
 
-                    Используйте программу как дополнительный инструмент принятия решений.
+                    {{ _("Используйте программу как дополнительный инструмент принятия решений.") }}
 
                 </p>
 
@@ -650,15 +639,14 @@ hidden>
 
                 <h3>
 
-                    Цифровые консультации
+                    {{ _("Цифровые консультации") }}
 
                 </h3>
 
 
                 <p>
 
-                    Проводите удалённые консультации
-                    с коллегами и клиниками.
+                    {{ _("Проводите удалённые консультации с коллегами и клиниками.") }}
 
                 </p>
 
@@ -678,14 +666,14 @@ hidden>
 
                 <h3>
 
-                    Совместный просмотр стёкол
+                    {{ _("Совместный просмотр стёкол") }}
 
                 </h3>
 
 
                 <p>
 
-                    Анализируйте препараты в высоком разрешении.
+                    {{ _("Анализируйте препараты в высоком разрешении.") }}
 
                 </p>
 
@@ -705,14 +693,14 @@ hidden>
 
                 <h3>
 
-                    Непрерывное образование
+                    {{ _("Непрерывное образование") }}
 
                 </h3>
 
 
                 <p>
 
-                    Получайте доступ к вебинарам и обучающим материалам.
+                    {{ _("Получайте доступ к вебинарам и обучающим материалам.") }}
 
                 </p>
 
@@ -732,14 +720,14 @@ hidden>
 
                 <h3>
 
-                    Гибкий график
+                    {{ _("Гибкий график") }}
 
                 </h3>
 
 
                 <p>
 
-                    Самостоятельно регулируйте количество консультаций и время ответа.
+                    {{ _("Самостоятельно регулируйте количество консультаций и время ответа.") }}
 
                 </p>
 
@@ -752,23 +740,21 @@ hidden>
 
             <h3>
 
-                Есть вопросы?
+                {{ _("Есть вопросы?") }}
 
             </h3>
 
 <br>
             <p>
 
-                Наша команда поддержки
-                готова помочь вам
-                на каждом этапе.
+                {{ _("Наша команда поддержки готова помочь вам на каждом этапе.") }}
 
             </p>
 
 
             <button>
 
-                Связаться с поддержкой
+                {{ _("Связаться с поддержкой") }}
 
             </button>
 
@@ -805,13 +791,13 @@ function renderFiles(){
     list.innerHTML = "";
 
     if(files.length===0){
-        list.innerHTML = "<p>Файлы не выбраны</p>";
+        list.innerHTML = "<p>" + t("Файлы не выбраны") + "</p>";
         return;
     }
 
     const success = document.createElement("div");
     success.className = "upload-success";
-    success.innerHTML = "✔️ Документы готовы к отправке";
+    success.textContent = "✔️ " + t("Документы готовы к отправке");
     list.appendChild(success);
 
     let total = 0;
@@ -841,8 +827,8 @@ function renderFiles(){
     const info = document.createElement("div");
 
     info.innerHTML = `
-        <strong>Выбрано файлов: ${files.length}</strong><br>
-        Общий размер: ${(total/1024/1024).toFixed(2)} MB
+        <strong>${t("Выбрано файлов: {count}", { count: files.length })}</strong><br>
+        ${t("Общий размер: {size} MB", { size: (total/1024/1024).toFixed(2) })}
     `;
 
     list.appendChild(info);
@@ -1013,7 +999,7 @@ return;
 
 if(!file.type.startsWith("image/")){
 
-alert("Выберите изображение.");
+alert(t("Выберите изображение."));
 
 this.value="";
 
@@ -1027,7 +1013,7 @@ reader.onload=function(e){
 
 avatar.src=e.target.result;
 
-title.innerText="Фотография загружена";
+title.innerText=t("Фотография загружена");
 
 button.innerHTML = `
 <svg width="18" height="18" viewBox="0 0 24 24"
@@ -1048,7 +1034,7 @@ stroke-width="2"/>
 
 </svg>
 
-<span>Изменить фотографию</span>
+<span>${t("Изменить фотографию")}</span>
 `;
 
 }
@@ -1085,7 +1071,7 @@ document.getElementById("other-checkbox").addEventListener("change", function() 
 
     input.type = "text";
     input.name = "other_specialty";
-    input.placeholder = "Введите специализацию";
+    input.placeholder = t("Введите специализацию");
 
     container.appendChild(input);
 

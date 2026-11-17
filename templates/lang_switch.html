@@ -1,0 +1,92 @@
+{# Переключатель языка интерфейса и переводы для скриптов страницы.
+   lang_next — куда вернуться после смены языка, если текущий адрес нельзя
+   открыть повторно (страница результата показывается после отправки формы) #}
+{% set lang_return = lang_next or (request.full_path if request.query_string else request.path) %}
+<nav class="lang-switch" aria-label="{{ _("Язык интерфейса") }}">
+    {% for code, short, name in languages %}
+    <a href="{{ url_for('set_language', code=code, next=lang_return) }}"
+       class="{% if code == current_lang %}active{% endif %}"
+       hreflang="{{ code }}" lang="{{ code }}" title="{{ name }}"
+       {% if code == current_lang %}aria-current="true"{% endif %}>{{ short }}</a>
+    {% endfor %}
+</nav>
+
+<style>
+.lang-switch{
+    position:absolute;
+    top:20px;
+    right:24px;
+    z-index:1500;
+    display:flex;
+    gap:2px;
+    padding:4px;
+    border-radius:14px;
+    background:rgba(20, 20, 45, .9);
+    border:1px solid rgba(139, 92, 246, .35);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 8px 24px rgba(0, 0, 0, .3);
+    font-family:'Inter', 'Segoe UI', sans-serif;
+}
+
+.lang-switch a{
+    min-width:40px;
+    height:36px;
+    padding:0 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    color:#c9c3ea;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-decoration:none;
+    box-sizing:border-box;
+    transition:background .2s, color .2s;
+}
+
+.lang-switch a:hover{
+    color:white;
+    background:rgba(124, 77, 255, .25);
+}
+
+.lang-switch a.active{
+    color:white;
+    background:linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+@media (max-width:768px){
+
+    /* открытое меню закрывает весь экран — переключатель прячем */
+    body.sidebar-open .lang-switch{
+        display:none;
+    }
+
+    .lang-switch{
+        top:12px;
+        right:12px;
+        padding:3px;
+    }
+
+    .lang-switch a{
+        min-width:38px;
+        height:38px;
+        padding:0 8px;
+        font-size:13px;
+    }
+}
+</style>
+
+<script>
+window.PAI_I18N = {{ script_catalog|tojson }};
+window.t = function (text, values) {
+    var out = (window.PAI_I18N && window.PAI_I18N[text]) || text;
+    if (values) {
+        out = out.replace(/\{(\w+)\}/g, function (match, key) {
+            return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match;
+        });
+    }
+    return out;
+};
+</script>

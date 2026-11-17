@@ -4,6 +4,8 @@
 
 window.ProtocolFields = (function () {
 
+    const t = window.t || ((text) => text);
+
     const DEFAULTS_KEY = "paithology.defaults";
     const DEFAULT_FIELDS = ["lab_worker", "stain_method", "consultant_title", "consultant_name"];
 
@@ -14,7 +16,7 @@ window.ProtocolFields = (function () {
             body: JSON.stringify(payload),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Не удалось выполнить запрос");
+        if (!response.ok) throw new Error(data.error || t("Не удалось выполнить запрос"));
         return data;
     }
 
@@ -54,7 +56,7 @@ window.ProtocolFields = (function () {
         const notice = block.querySelector("[data-clinical-notice]");
         const button = block.querySelector("[data-clinical-generate]");
         button.addEventListener("click", () => withBusy(button, async () => {
-            if (!input.value.trim()) { notice.textContent = "Сначала введите клинический диагноз."; return; }
+            if (!input.value.trim()) { notice.textContent = t("Сначала введите клинический диагноз."); return; }
             try {
                 const data = await postJSON(options.url, options.csrf, {
                     text: input.value,
@@ -242,7 +244,7 @@ window.ProtocolFields = (function () {
         if (folder) {
             try {
                 await saveToFolder(folder, name, blob);
-                return `Файл «${name}» сохранён в папку «${folder.name}».`;
+                return t("Файл «{name}» сохранён в папку «{folder}».", { name, folder: folder.name });
             } catch (e) {
                 // Не удалось записать в папку — скачиваем обычным способом
             }
@@ -254,7 +256,7 @@ window.ProtocolFields = (function () {
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(link.href), 10000);
-        return `Файл «${name}» скачан.`;
+        return t("Файл «{name}» скачан.", { name });
     }
 
     // ---------- Отчёт по исследованию ИИ-анализа в формате протокола ----------
@@ -287,7 +289,7 @@ window.ProtocolFields = (function () {
         const response = await fetch(url, { method: "POST", body: data, headers: { "X-CSRF-Token": csrf } });
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.error || "Не удалось собрать отчёт");
+            throw new Error(error.error || t("Не удалось собрать отчёт"));
         }
         const name = nameFromDisposition(response.headers.get("Content-Disposition"), `report.${format}`);
         return deliver(await response.blob(), name, folder);
@@ -297,7 +299,7 @@ window.ProtocolFields = (function () {
     function setupCaseReport(root) {
         const status = root.querySelector("[data-case-report-status]");
         root.querySelectorAll("[data-case-report]").forEach((button) => button.addEventListener("click", () => withBusy(button, async () => {
-            if (status) status.textContent = "Собираю отчёт…";
+            if (status) status.textContent = t("Собираю отчёт…");
             try {
                 const message = await downloadCaseReport(button.dataset.url, button.dataset.csrf, button.dataset.caseReport);
                 if (status) status.textContent = message;
