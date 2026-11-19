@@ -11,6 +11,10 @@ color:#ffffff;
 }
 
 .consultant-container{
+
+/* ширина вместе с отступами — страница не шире окна, даже при открытом меню */
+box-sizing:border-box;
+
 width:100%;
 max-width:1800px;
 margin:auto;
@@ -23,7 +27,7 @@ display:grid;
 grid-template-columns:
 
 260px
-1fr
+minmax(0, 1fr)
 380px;
 
 gap:40px;

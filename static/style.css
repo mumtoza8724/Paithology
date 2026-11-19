@@ -42,10 +42,12 @@ body{
 }
 
 .main{
+    /* ширина считается вместе с отступами: страница не шире окна */
+    box-sizing:border-box;
     padding:90px 40px 40px;
     margin-left: 20px;
     transition:.3s;
-    width:calc(100% - 80px);
+    width:auto;
 }
 
 .main.shift{
