@@ -129,8 +129,10 @@ box-shadow:
     gap:12px;
     align-items:center;
     justify-content:center;
-    flex-wrap:nowrap;
-    overflow-x:auto;
+    /* поля переносятся на следующую строку, а не уезжают за край */
+    flex-wrap:wrap;
+    max-width:1200px;
+    margin:0 auto;
 }
 
 .search-panel input,
