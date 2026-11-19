@@ -51,6 +51,20 @@ def source_messages():
     with open(os.path.join(ROOT, "protocols.py"), encoding="utf-8") as f:
         found.update(re.findall(r'ProtocolError\(\s*"([^"]+)"', f.read()))
 
+    # Консультации: статусы, тексты уведомлений и сообщения об ошибках
+    import consultations
+
+    found.update(consultations.STATUS_LABELS.values())
+    found.update(consultations.NOTIFICATION_TEXTS.values())
+
+    with open(os.path.join(ROOT, "consultations.py"), encoding="utf-8") as f:
+        found.update(re.findall(r'ConsultationError\(\s*"([^"]+)"', f.read()))
+
+    # Сообщения, которые app.py кладёт в сессию или в переменную error и
+    # переводит при показе
+    with open(os.path.join(ROOT, "app.py"), encoding="utf-8") as f:
+        found.update(re.findall(r'(?:_error"\]|\berror) = "([^"]*[А-Яа-яЁё][^"]*)"', f.read()))
+
     return found
 
 

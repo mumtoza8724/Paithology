@@ -2,7 +2,7 @@
 document.querySelectorAll("time[data-local]").forEach((node) => {
     const date = new Date(node.getAttribute("datetime"));
     if (isNaN(date)) return;
-    node.textContent = date.toLocaleString(({ en: "en-GB", uz: "uz-Latn-UZ" })[document.documentElement.lang] || "ru-RU", {
+    node.textContent = date.toLocaleString(document.documentElement.lang === "en" ? "en-GB" : "ru-RU", {
         day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
 });

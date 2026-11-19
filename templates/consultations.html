@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+{% if mode == "incoming" %}
+<title>{{ _("Входящие запросы") }} — PAITHOLOGY</title>
+{% else %}
+<title>{{ _("Мои консультации") }} — PAITHOLOGY</title>
+{% endif %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='consultations.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol">
+
+    {% if mode == "incoming" %}
+
+    <h1 class="page-title">{{ _("Входящие запросы") }}</h1>
+    <p class="page-subtitle">{{ _("Запросы на консультацию от пользователей: примите запрос и ответьте в срок, указанный в вашей анкете") }}</p>
+
+    {% else %}
+
+    <h1 class="page-title">{{ _("Мои консультации") }}</h1>
+    <p class="page-subtitle">{{ _("Исследования, которые вы отправили консультантам за вторым мнением") }}</p>
+
+    {% endif %}
+
+    {% if not_consultant %}
+
+    <div class="glass-card">
+        <div class="empty-state">
+            <i class="bi bi-person-badge"></i>
+            {% if pending_profile %}
+            <h2>{{ _("Анкета на проверке") }}</h2>
+            <p>{{ _("Запросы начнут приходить, когда администратор проверит вашу анкету консультанта.") }}</p>
+            {% else %}
+            <h2>{{ _("Раздел для консультантов") }}</h2>
+            <p>{{ _("Здесь появляются запросы от пользователей. Чтобы получать их, заполните анкету консультанта.") }}</p>
+            <a class="btn btn-primary" href="{{ url_for('consultant_register') }}">
+                <i class="bi bi-person-plus"></i> {{ _("Стать консультантом") }}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+
+    <nav class="tabs">
+        {% if mode == "incoming" %}
+            {% set tabs = [("all", _("Все")), ("new", _("Новые")), ("work", _("В работе")), ("answered", _("Отвеченные"))] %}
+            {% set endpoint = "consultations_incoming" %}
+        {% else %}
+            {% set tabs = [("all", _("Все")), ("waiting", _("Ждут ответа")), ("answered", _("С ответом"))] %}
+            {% set endpoint = "consultations_mine" %}
+        {% endif %}
+        {% for code, label in tabs %}
+        <a class="tab {% if status == code %}active{% endif %}"
+           href="{{ url_for(endpoint, status=code) if code != 'all' else url_for(endpoint) }}">{{ label }}</a>
+        {% endfor %}
+    </nav>
+
+    <div class="glass-card">
+
+        {% if cards %}
+
+        <div class="request-list">
+            {% for card in cards %}
+            {% set item = card.item %}
+            <a class="request-card {% if mode == 'incoming' and item.status == 'sent' %}is-new{% endif %}"
+               href="{{ url_for('consultation_view', id=item.id) }}">
+
+                <div>
+                    <div class="request-title">
+                        {% if mode == "incoming" %}
+                        <span><i class="bi bi-person"></i> {{ card.requester_name }}</span>
+                        {% else %}
+                        <span><i class="bi bi-person-badge"></i> {{ card.consultant_name }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="request-meta">
+                        {% if card.case %}
+                        <span><i class="bi bi-file-earmark-medical"></i>{{ card.case.organ or "—" }}{% if card.case.research_number %} · {{ card.case.research_number }}{% endif %}</span>
+                        {% else %}
+                        <span><i class="bi bi-file-earmark-x"></i>{{ _("Исследование удалено") }}</span>
+                        {% endif %}
+                        <span><i class="bi bi-send"></i><time data-local datetime="{{ item.created_at.isoformat() }}Z">{{ item.created_at.strftime('%d.%m.%Y %H:%M') }} UTC</time></span>
+                        {% if item.status == 'accepted' and item.due_at %}
+                        <span><i class="bi bi-hourglass-split"></i>{{ _("Ответ до") }} <time data-local datetime="{{ item.due_at.isoformat() }}Z">{{ item.due_at.strftime('%d.%m.%Y %H:%M') }} UTC</time></span>
+                        {% endif %}
+                    </div>
+
+                    {% if item.question %}
+                    <div class="request-question">{{ item.question }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="request-side">
+                    {% if card.overdue %}
+                    <span class="status-badge status-overdue"><i class="bi bi-exclamation-triangle"></i> {{ _("Срок ответа истёк") }}</span>
+                    {% else %}
+                    <span class="status-badge status-{{ item.status }}">
+                        {% if mode == 'incoming' and item.status == 'sent' %}{{ _("Новый") }}{% elif mode == 'incoming' and item.status == 'answered' %}{{ _("Отвечено") }}{% else %}{{ _(status_labels[item.status]) }}{% endif %}
+                    </span>
+                    {% endif %}
+                    {% if item.price %}<span class="price-tag">{{ item.price }} $</span>{% endif %}
+                </div>
+
+            </a>
+            {% endfor %}
+        </div>
+
+        {% else %}
+
+        <div class="empty-state">
+            {% if mode == "incoming" %}
+            <i class="bi bi-inbox"></i>
+            <h2>{{ _("Запросов пока нет") }}</h2>
+            <p>{{ _("Когда пользователь отправит вам исследование, здесь появится запрос, а у колокольчика — уведомление.") }}</p>
+            {% else %}
+            <i class="bi bi-chat-square-text"></i>
+            <h2>{{ _("Вы ещё не отправляли запросов") }}</h2>
+            <p>{{ _("Откройте исследование или результат ИИ-анализа, нажмите «Отправить на консультацию» и выберите консультанта.") }}</p>
+            <a class="btn btn-primary" href="{{ url_for('consultants') }}">
+                <i class="bi bi-people"></i> {{ _("Выбрать консультанта") }}
+            </a>
+            {% endif %}
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+<script src="{{ url_for('static', filename='local-time.js') }}"></script>
+
+</body>
+</html>

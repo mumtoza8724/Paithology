@@ -386,7 +386,7 @@ max="100"
 
 
 <button class="consult-btn"
-        onclick="window.location.href='{{ url_for('consultants') }}'">
+        onclick="window.location.href='{{ url_for('consultants', case=case_id) }}'">
     {{ _("🩺 Отправить на консультацию") }}
 </button>
 

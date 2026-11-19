@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ _("Запрос на консультацию") }} — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='consultations.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol">
+
+    <h1 class="page-title">{{ _("Запрос на консультацию") }}</h1>
+    <p class="page-subtitle">{{ _("Консультант получит ваше исследование: снимки, данные ИИ-анализа и вопрос. ФИО пациента консультанту не показывается.") }}</p>
+
+    <div class="page-actions">
+        <a class="link-back" href="{{ url_for('consultants', case=case_id) if case_id else url_for('consultants') }}">
+            <i class="bi bi-arrow-left"></i> {{ _("К списку консультантов") }}
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ _(error) }}</div>
+    {% endif %}
+
+    <div class="request-layout">
+
+        <div class="glass-card">
+
+            <div class="card-heading">
+                <h2><i class="bi bi-send"></i> {{ _("Что отправить") }}</h2>
+            </div>
+
+            {% if can_send %}
+
+            {% if user_cases %}
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="consultant" value="{{ consultant.id }}">
+
+                <label class="field-label" for="case">{{ _("Исследование") }}</label>
+                <select name="case" id="case" required>
+                    {% for case in user_cases %}
+                    <option value="{{ case.id }}" {% if case.id == case_id %}selected{% endif %}>
+                        {{ case.research_number or ("#" ~ case.id) }} · {{ case.organ or "—" }} · {{ case.patient_name or "—" }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <label class="field-label" for="question">{{ _("Вопрос консультанту") }}</label>
+                <textarea name="question" id="question" maxlength="4000"
+                          placeholder="{{ _("Например: подтвердите, пожалуйста, степень дифференцировки и наличие инвазии") }}">{{ question }}</textarea>
+
+                <div class="form-actions">
+                    <span></span>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> {{ _("Отправить запрос") }}
+                    </button>
+                </div>
+            </form>
+
+            {% else %}
+
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-medical"></i>
+                <h2>{{ _("Нет исследований для отправки") }}</h2>
+                <p>{{ _("Сначала загрузите снимки на главной странице и запустите ИИ-анализ — исследование сохранится, и его можно будет отправить.") }}</p>
+                <a class="btn btn-primary" href="{{ url_for('home') }}"><i class="bi bi-house"></i> {{ _("На главную") }}</a>
+            </div>
+
+            {% endif %}
+
+            {% else %}
+
+            <p class="hint">{{ _("Отправить запрос этому консультанту сейчас нельзя.") }}</p>
+
+            {% endif %}
+
+        </div>
+
+        <div class="glass-card">
+
+            <div class="card-heading">
+                <h2><i class="bi bi-person-badge"></i> {{ _("Консультант") }}</h2>
+            </div>
+
+            <div class="consultant-mini">
+                {% if consultant.photo %}
+                <img src="{{ url_for('static', filename=consultant.photo) }}" alt="">
+                {% else %}
+                <span class="avatar"><i class="bi bi-person"></i></span>
+                {% endif %}
+                <div>
+                    <b>{{ consultant.first_name }} {{ consultant.last_name }}</b>
+                    <span>{{ _(consultant.degree or '') }}{% if consultant.country %} · {{ _(consultant.country) }}{% endif %}</span>
+                </div>
+            </div>
+
+            <table class="data-table" style="margin-top:16px">
+                <tr><td>{{ _("Стоимость консультации") }}</td><td>{{ consultant.consult_price or "—" }} $</td></tr>
+                <tr><td>{{ _("Время ответа") }}</td><td>{{ _("до {hours} ч после принятия", hours=response_hours) }}</td></tr>
+                <tr><td>{{ _("Специализация") }}</td><td>{{ consultant.specializations|tr_list or "—" }}</td></tr>
+            </table>
+
+            <p class="demo-note">
+                <i class="bi bi-info-circle"></i>
+                {{ _("Оплата проходит, когда консультант принимает запрос. Сейчас приложение работает в тестовом режиме: деньги не списываются.") }}
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

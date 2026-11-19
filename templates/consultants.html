@@ -184,6 +184,32 @@ color:white;
 }
 
 
+.btn{
+    display:block;
+    box-sizing:border-box;
+    text-align:center;
+    text-decoration:none;
+    color:white;
+    font-weight:600;
+}
+
+.btn-disabled{
+    cursor:default;
+    opacity:.55;
+    background:rgba(255,255,255,.08) !important;
+}
+
+.case-banner{
+    max-width:1100px;
+    margin:0 auto 24px;
+    padding:14px 18px;
+    border-radius:14px;
+    color:#e9d5ff;
+    background:rgba(124,77,255,.14);
+    border:1px solid rgba(168,85,247,.45);
+    text-align:center;
+}
+
 </style>
 
 <link rel="stylesheet"
@@ -196,7 +222,13 @@ href="{{ url_for('static', filename='sidebar.css') }}">
 
 <h1>{{ _("Консультанты PAITHOLOGY") }}</h1>
 
+{% if case_id %}
+<div class="case-banner">{{ _("Выберите консультанта, которому отправить исследование") }}</div>
+{% endif %}
+
 <form method="GET" class="search-panel">
+
+    {% if case_id %}<input type="hidden" name="case" value="{{ case_id }}">{% endif %}
 
     <input
         type="text"
@@ -355,9 +387,15 @@ src="{{ url_for('static', filename='icons/user.svg') }}">
 
 </div>
 
-<button class="btn">
+{% if consultant_accounts.get(consultant.id) and consultant_accounts.get(consultant.id) == current_user_id %}
+<span class="btn btn-disabled">{{ _("Это ваша анкета") }}</span>
+{% elif consultant_accounts.get(consultant.id) %}
+<a class="btn" href="{{ url_for('consultation_new', consultant=consultant.id, case=case_id) if case_id else url_for('consultation_new', consultant=consultant.id) }}">
 {{ _("Заказать консультацию") }}
-</button>
+</a>
+{% else %}
+<span class="btn btn-disabled" title="{{ _("Этот консультант пока не принимает запросы через приложение") }}">{{ _("Пока не принимает запросы") }}</span>
+{% endif %}
 
 </div>
 

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ _("Запрос на консультацию") }} #{{ item.id }} — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='consultations.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+{% macro when(value) -%}
+<time data-local datetime="{{ value.isoformat() }}Z">{{ value.strftime('%d.%m.%Y %H:%M') }} UTC</time>
+{%- endmacro %}
+
+<div class="main protocol">
+
+    <h1 class="page-title">{{ _("Запрос на консультацию") }} #{{ item.id }}</h1>
+
+    <p class="page-subtitle">
+        {% if overdue %}
+        <span class="status-badge status-overdue"><i class="bi bi-exclamation-triangle"></i> {{ _("Срок ответа истёк") }}</span>
+        {% else %}
+        <span class="status-badge status-{{ item.status }}">{{ _(status_labels[item.status]) }}</span>
+        {% endif %}
+        &nbsp;
+        {% if role == "consultant" %}{{ _("От пользователя") }} <b>{{ requester_name }}</b>{% else %}{{ _("Консультант") }}: <b>{{ consultant_name }}</b>{% endif %}
+    </p>
+
+    <div class="page-actions">
+        {% if role == "consultant" %}
+        <a class="link-back" href="{{ url_for('consultations_incoming') }}"><i class="bi bi-arrow-left"></i> {{ _("К входящим запросам") }}</a>
+        {% else %}
+        <a class="link-back" href="{{ url_for('consultations_mine') }}"><i class="bi bi-arrow-left"></i> {{ _("К моим консультациям") }}</a>
+        {% endif %}
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ _(error) }}</div>
+    {% endif %}
+
+    {% if just_sent %}
+    <div class="alert alert-ok">{{ _("Запрос отправлен. Когда консультант примет его, придёт уведомление.") }}</div>
+    {% endif %}
+
+    <div class="request-layout">
+
+        <div>
+
+            {% if item.status == "answered" %}
+            <div class="glass-card">
+                <div class="card-heading">
+                    <h2><i class="bi bi-chat-square-quote"></i> {{ _("Ответ консультанта") }}</h2>
+                </div>
+                <div class="answer-box">
+                    <h3>{{ _("Заключение консультанта") }}</h3>
+                    <div class="text-block">{{ item.answer_conclusion }}</div>
+                    {% if item.answer_comment %}
+                    <h3 style="margin-top:14px">{{ _("Комментарий") }}</h3>
+                    <div class="text-block">{{ item.answer_comment }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if role == "consultant" and item.status == "accepted" %}
+            <div class="glass-card">
+                <div class="card-heading">
+                    <h2><i class="bi bi-pencil-square"></i> {{ _("Ваш ответ") }}</h2>
+                </div>
+                <form method="POST" action="{{ url_for('consultation_action', id=item.id, action='answer') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <label class="field-label" for="answer_conclusion">{{ _("Заключение консультанта") }}</label>
+                    <textarea name="answer_conclusion" id="answer_conclusion" required maxlength="20000"
+                              placeholder="{{ _("Ваше патогистологическое заключение по этому исследованию") }}"></textarea>
+                    <label class="field-label" for="answer_comment">{{ _("Комментарий (необязательно)") }}</label>
+                    <textarea name="answer_comment" id="answer_comment" maxlength="20000"
+                              placeholder="{{ _("Рекомендации: дополнительные окраски, ИГХ, пересмотр и т. п.") }}"></textarea>
+                    <div class="form-actions">
+                        <span></span>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send-check"></i> {{ _("Отправить ответ") }}</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="glass-card">
+                <div class="card-heading">
+                    <h2><i class="bi bi-question-circle"></i> {{ _("Вопрос") }}</h2>
+                </div>
+                <div class="text-block">{{ item.question or _("Вопрос не указан") }}</div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-heading">
+                    <h2><i class="bi bi-file-earmark-medical"></i> {{ _("Исследование") }}</h2>
+                </div>
+
+                {% if case %}
+
+                <table class="data-table">
+                    <tr><td>{{ _("№ исследования") }}</td><td>{{ case.research_number or "—" }}</td></tr>
+                    {% if role == "requester" %}
+                    <tr><td>{{ _("ФИО пациента") }}</td><td>{{ case.patient_name or "—" }}</td></tr>
+                    {% endif %}
+                    <tr><td>{{ _("Орган") }}</td><td>{{ case.organ or "—" }}</td></tr>
+                    <tr><td>{{ _("Пол") }}</td><td>{{ case.gender or "—" }}</td></tr>
+                    <tr><td>{{ _("Дата рождения") }}</td><td>{{ case.birth_date or "—" }}</td></tr>
+                    <tr><td>{{ _("Тип операции") }}</td><td>{{ case.operation_type or "—" }}</td></tr>
+                    <tr><td>{{ _("Клинический диагноз") }}</td><td>{{ case.clinical or "—" }}</td></tr>
+                    <tr><td>{{ _("Метод окраски") }}</td><td>{{ case.stain_method or "—" }}</td></tr>
+                </table>
+
+                {% if case_images %}
+                <label class="field-label" style="margin-top:18px">{{ _("Снимки") }}</label>
+                <div class="request-images">
+                    {% for path in case_images %}
+                    <a href="/{{ path }}" target="_blank" rel="noopener"><img src="/{{ path }}" alt="{{ _("Снимок") }} {{ loop.index }}"></a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <label class="field-label" style="margin-top:18px">{{ _("Описание ИИ-анализа") }}</label>
+                <div class="text-block">{{ case.description or "—" }}</div>
+
+                <label class="field-label" style="margin-top:14px">{{ _("Заключение ИИ-анализа") }}</label>
+                <div class="text-block">{{ case.conclusion or "—" }}</div>
+
+                {% else %}
+
+                <p class="hint">{{ _("Исследование удалено отправителем.") }}</p>
+
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div class="glass-card">
+
+            <div class="card-heading">
+                <h2><i class="bi bi-list-check"></i> {{ _("Ход консультации") }}</h2>
+            </div>
+
+            <ul class="timeline">
+                <li class="done">{{ _("Запрос отправлен") }}<small>{{ when(item.created_at) }}</small></li>
+
+                {% if item.status == "declined" %}
+                <li class="done">{{ _("Запрос отклонён") }}{% if item.closed_at %}<small>{{ when(item.closed_at) }}</small>{% endif %}</li>
+                {% elif item.status == "cancelled" %}
+                <li class="done">{{ _("Запрос отменён") }}{% if item.closed_at %}<small>{{ when(item.closed_at) }}</small>{% endif %}</li>
+                {% else %}
+                <li class="{% if item.accepted_at %}done{% endif %}">
+                    {{ _("Принят консультантом, оплата проведена") }}
+                    {% if item.accepted_at %}<small>{{ when(item.accepted_at) }}</small>{% else %}<small>{{ _("ожидается") }}</small>{% endif %}
+                </li>
+                <li class="{% if item.answered_at %}done{% endif %}">
+                    {{ _("Ответ консультанта") }}
+                    {% if item.answered_at %}<small>{{ when(item.answered_at) }}</small>
+                    {% elif item.due_at %}<small>{{ _("до") }} {{ when(item.due_at) }}</small>
+                    {% else %}<small>{{ _("до {hours} ч после принятия", hours=item.response_hours) }}</small>{% endif %}
+                </li>
+                {% endif %}
+            </ul>
+
+            <table class="data-table" style="margin-top:16px">
+                <tr><td>{{ _("Стоимость консультации") }}</td><td>{{ item.price or "—" }} $</td></tr>
+                <tr><td>{{ _("Оплата") }}</td><td>{% if item.payment_status == "paid" %}{{ _("Проведена") }}{% else %}{{ _("Не проводилась") }}{% endif %}</td></tr>
+            </table>
+
+            <div class="side-actions">
+
+                {% if role == "consultant" and item.status == "sent" %}
+                <form method="POST" action="{{ url_for('consultation_action', id=item.id, action='accept') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> {{ _("Принять запрос") }}</button>
+                </form>
+                <form method="POST" action="{{ url_for('consultation_action', id=item.id, action='decline') }}"
+                      onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ _("Отклонить этот запрос?") }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> {{ _("Отклонить") }}</button>
+                </form>
+                {% endif %}
+
+                {% if role == "requester" and item.status == "sent" %}
+                <form method="POST" action="{{ url_for('consultation_action', id=item.id, action='cancel') }}"
+                      onsubmit="return confirm(this.dataset.confirm)" data-confirm="{{ _("Отменить запрос?") }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-ghost"><i class="bi bi-x-lg"></i> {{ _("Отменить запрос") }}</button>
+                </form>
+                {% endif %}
+
+            </div>
+
+            <p class="demo-note">
+                <i class="bi bi-info-circle"></i>
+                {{ _("Тестовый режим: при принятии запроса оплата отмечается как проведённая, но деньги не списываются. Подключение платёжной системы — следующий этап.") }}
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='local-time.js') }}"></script>
+
+</body>
+</html>
