@@ -79,6 +79,34 @@ stroke-width="2"/>
 
 </a>
 
+<a href="{{ url_for('consultations_mine') }}"
+   class="menu-item {% if request.endpoint == 'consultations_mine' %}active{% endif %}">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+<path d="M4 5H20V16H9L5 20V16H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+<path d="M8 9H16M8 12.5H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+
+<span>{{ _("Мои консультации") }}</span>
+
+</a>
+
+{% if nav_is_consultant %}
+<a href="{{ url_for('consultations_incoming') }}"
+   class="menu-item {% if request.endpoint == 'consultations_incoming' %}active{% endif %}">
+
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+<path d="M3 13L5.5 5H18.5L21 13V19H3V13Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+<path d="M3 13H8L9.5 15.5H14.5L16 13H21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+
+<span>{{ _("Входящие запросы") }}</span>
+
+{% if nav_incoming %}<b class="menu-badge">{{ nav_incoming }}</b>{% endif %}
+
+</a>
+{% endif %}
+
 <a href="{{ url_for('cases') }}"
 class="menu-item {% if request.endpoint == 'cases' %}active{% endif %}">
 

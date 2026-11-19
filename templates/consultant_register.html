@@ -16,6 +16,26 @@ href="{{ url_for('static', filename='consultant.css') }}">
     <link rel="stylesheet"
 href="{{ url_for('static', filename='sidebar.css') }}">
 
+<style>
+.profile-status{
+    margin-bottom:24px;
+    padding:14px 18px;
+    border-radius:14px;
+    line-height:1.5;
+    color:#fde68a;
+    background:rgba(234,179,8,.1);
+    border:1px solid rgba(234,179,8,.4);
+}
+.profile-status.ok{
+    color:#bbf7d0;
+    background:rgba(34,197,94,.1);
+    border-color:rgba(34,197,94,.4);
+}
+.profile-status a{
+    color:inherit;
+    font-weight:700;
+}
+</style>
 </head>
 
 <body>
@@ -100,6 +120,17 @@ JPG • PNG • WEBP
     </div>
 
     <div class="center-column">
+
+        {% if existing %}
+        <div class="profile-status {% if existing.verified %}ok{% endif %}">
+            {% if existing.verified %}
+            {{ _("Ваша анкета консультанта проверена. Запросы от пользователей приходят в раздел «Входящие запросы».") }}
+            <a href="{{ url_for('consultations_incoming') }}">{{ _("Открыть") }}</a>
+            {% else %}
+            {{ _("Ваша анкета уже отправлена и ждёт проверки администратором. Повторно отправлять её не нужно.") }}
+            {% endif %}
+        </div>
+        {% endif %}
 
         <h1>
 

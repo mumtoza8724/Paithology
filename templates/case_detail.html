@@ -489,6 +489,8 @@ color:white;
     <button type="submit" class="btn doc" style="font-family:inherit">{{ _("Оформить протокол") }}</button>
 </form>
 
+<a href="{{ url_for('consultants', case=case.id) }}" class="btn doc">{{ _("Отправить на консультацию") }}</a>
+
 <a
 href="/cases"
 class="btn back">
@@ -501,7 +503,8 @@ class="btn back">
 method="POST"
 action="{{ url_for('delete_case', id=case.id) }}"
 style="display:inline"
-onsubmit="return confirm('Удалить исследование?');">
+onsubmit="return confirm(this.dataset.confirm);"
+data-confirm="{{ _("Удалить исследование?") }}">
 
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 

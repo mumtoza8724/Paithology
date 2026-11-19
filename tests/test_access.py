@@ -264,8 +264,12 @@ def test_login_without_csrf_token_is_rejected(app, client):
 
 def test_forms_contain_csrf_token(app, two_users, client):
 
-    for url in ("/login", "/register", "/consultant-register"):
+    for url in ("/login", "/register"):
         get_csrf(client, url)
+
+    # Анкета консультанта привязывается к аккаунту: страница только после входа
+    assert client.get("/consultant-register").status_code == 302
+    get_csrf(two_users["owner"], "/consultant-register")
 
     get_csrf(two_users["owner"], "/")
     get_csrf(two_users["owner"], f"/case/{two_users['case_id']}")
@@ -475,6 +479,9 @@ def test_non_admin_cannot_open_documents(
 
 
 def test_new_documents_saved_privately(app, client, document_folders):
+
+    create_user(app, "applicant", "applicant-pass")
+    login(client, "applicant", "applicant-pass")
 
     token = get_csrf(client, "/consultant-register")
 

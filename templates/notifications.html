@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>{{ _("Уведомления") }} — PAITHOLOGY</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='protocol.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='consultations.css') }}">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+<body>
+
+{% include "sidebar.html" %}
+
+<div class="main protocol">
+
+    <h1 class="page-title">{{ _("Уведомления") }}</h1>
+    <p class="page-subtitle">{{ _("Новые запросы, принятие и ответы консультантов") }}</p>
+
+    <div class="glass-card">
+
+        {% if items %}
+
+        {% if items|selectattr("unread")|list %}
+        <form method="POST" action="{{ url_for('notifications_read_all') }}" style="margin-bottom:16px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-ghost btn-small"><i class="bi bi-check2-all"></i> {{ _("Отметить все прочитанными") }}</button>
+        </form>
+        {% endif %}
+
+        <ul class="notification-list">
+            {% for n in items %}
+            <li>
+                <a class="{% if n.unread %}unread{% endif %}" href="{{ url_for('notification_open', id=n.id) }}">
+                    <span>{{ n.text }}</span>
+                    <time data-local datetime="{{ n.created_at.isoformat() }}Z">{{ n.created_at.strftime('%d.%m.%Y %H:%M') }} UTC</time>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% else %}
+
+        <div class="empty-state">
+            <i class="bi bi-bell"></i>
+            <h2>{{ _("Уведомлений пока нет") }}</h2>
+            <p>{{ _("Здесь появятся новые запросы на консультацию, принятие запросов и ответы консультантов.") }}</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='local-time.js') }}"></script>
+
+</body>
+</html>

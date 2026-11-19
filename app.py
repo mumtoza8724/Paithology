@@ -17,8 +17,11 @@ from database import (
     Case,
     CaseDetails,
     Consultant,
+    ConsultationRequest,
+    Notification,
     User
 )
+import consultations
 from qr_generator import create_qr
 import protocols
 import protocol_store
@@ -353,6 +356,29 @@ def csrf_token():
 
 app.jinja_env.globals["csrf_token"] = csrf_token
 app.jinja_env.globals["_"] = _
+
+
+@app.context_processor
+def account_context():
+
+    """Счётчики для колокольчика уведомлений и бокового меню."""
+
+    if request.endpoint == "static":
+        return {}
+
+    user = getattr(g, "user", None) or get_current_user()
+
+    if user is None:
+        return {"nav_user": None}
+
+    consultant = consultations.active_consultant_for_user(user.id)
+
+    return {
+        "nav_user": user,
+        "nav_is_consultant": consultant is not None,
+        "nav_unread": consultations.unread_count(user.id),
+        "nav_incoming": consultations.pending_incoming_count(user.id) if consultant else 0,
+    }
 
 
 @app.context_processor
@@ -880,7 +906,13 @@ def case_to_protocol(id):
 
 
 @app.route("/consultant-register", methods=["GET", "POST"])
+@login_required
 def consultant_register():
+
+    existing = consultations.consultant_for_user(g.user.id)
+
+    if request.method == "POST" and existing is not None:
+        return render_template("consultant_register.html", existing=existing), 409
 
     if request.method == "POST":
 
@@ -988,11 +1020,16 @@ def consultant_register():
         )
 
         db.session.add(consultant)
+        db.session.flush()
+
+        # Анкета привязывается к аккаунту: на него будут приходить запросы
+        consultations.link_account(consultant, g.user)
+
         db.session.commit()
 
         return redirect(url_for("consultants"))
 
-    return render_template("consultant_register.html")
+    return render_template("consultant_register.html", existing=existing)
 
 @app.route("/consultants")
 def consultants():
@@ -1049,9 +1086,21 @@ def consultants():
             response_time=response_time
         )
 
+    case_id = request.args.get("case", type=int)
+
+    user = get_current_user()
+
+    accounts = {
+        link.consultant_id: link.user_id
+        for link in consultations.ConsultantAccount.query.all()
+    }
+
     return render_template(
         "consultants.html",
-        consultants=consultants.all()
+        consultants=consultants.all(),
+        case_id=case_id,
+        consultant_accounts=accounts,
+        current_user_id=user.id if user else None
     )
 
 @app.route(
@@ -1172,10 +1221,44 @@ def admin_consultants():
 
     consultants = Consultant.query.all()
 
+    accounts = {}
+
+    for consultant in consultants:
+        owner = consultations.account_for_consultant(consultant.id)
+        accounts[consultant.id] = owner.username if owner else None
+
     return render_template(
         "admin_consultants.html",
-        consultants=consultants
+        consultants=consultants,
+        accounts=accounts,
+        admin_error=session.pop("admin_error", None)
     )
+
+
+@app.route("/admin/consultants/<int:id>/link", methods=["POST"])
+@admin_required
+def link_consultant_account(id):
+
+    """Привязка анкеты, отправленной до появления запросов, к аккаунту по логину."""
+
+    consultant = Consultant.query.get_or_404(id)
+
+    user = User.query.filter_by(username=(request.form.get("username") or "").strip()).first()
+
+    if user is None:
+        session["admin_error"] = "Пользователь с таким логином не найден"
+        return redirect(url_for("admin_consultants"))
+
+    try:
+        consultations.link_account(consultant, user)
+    except consultations.ConsultationError as e:
+        db.session.rollback()
+        session["admin_error"] = e.message
+        return redirect(url_for("admin_consultants"))
+
+    db.session.commit()
+
+    return redirect(url_for("admin_consultants"))
 
 @app.route("/admin/consultants/<int:id>/documents/<path:filename>")
 @admin_required
@@ -1219,11 +1302,301 @@ def reject_consultant(id):
 
     consultant = Consultant.query.get_or_404(id)
 
+    consultations.close_for_removed_consultant(consultant.id)
+    consultations.unlink_consultant(consultant.id)
+
     db.session.delete(consultant)
 
     db.session.commit()
 
     return redirect(url_for("admin_consultants"))
+
+# ---------- Консультации ----------
+
+def consultation_or_404(id):
+
+    """Запрос виден только отправителю и консультанту, которому он адресован."""
+
+    item = db.session.get(ConsultationRequest, id)
+
+    if item is None or consultations.role_in(item, g.user.id) is None:
+        abort(404)
+
+    return item
+
+
+def consultation_error(error, id):
+
+    session["consultation_error"] = error.message
+
+    return redirect(url_for("consultation_view", id=id))
+
+
+def consultation_cards(items, user_id):
+
+    """Данные для списков: консультант, исследование, вторая сторона."""
+
+    cards = []
+    now = consultations.utcnow()
+
+    for item in items:
+        consultant = db.session.get(Consultant, item.consultant_id)
+        requester = db.session.get(User, item.requester_id)
+        case = consultations.case_for(item)
+        cards.append({
+            "item": item,
+            "consultant_name": consultations.consultant_name(consultant) or _("Консультант удалён"),
+            "requester_name": requester.username if requester else "—",
+            "case": case,
+            "overdue": consultations.is_overdue(item, now),
+        })
+
+    return cards
+
+
+@app.route("/consultations")
+@login_required
+def consultations_mine():
+
+    items = consultations.sent_by(g.user.id)
+
+    status = request.args.get("status", "all")
+
+    if status == "waiting":
+        items = [i for i in items if i.status in consultations.OPEN_STATUSES]
+    elif status == "answered":
+        items = [i for i in items if i.status == consultations.ANSWERED]
+    else:
+        status = "all"
+
+    return render_template(
+        "consultations.html",
+        mode="mine",
+        status=status,
+        cards=consultation_cards(items, g.user.id),
+        status_labels=consultations.STATUS_LABELS,
+    )
+
+
+@app.route("/consultations/incoming")
+@login_required
+def consultations_incoming():
+
+    consultant = consultations.active_consultant_for_user(g.user.id)
+
+    if consultant is None:
+        return render_template(
+            "consultations.html",
+            mode="incoming",
+            not_consultant=True,
+            pending_profile=consultations.consultant_for_user(g.user.id),
+            status="all",
+            cards=[],
+            status_labels=consultations.STATUS_LABELS,
+        )
+
+    items = consultations.received_by(g.user.id)
+
+    status = request.args.get("status", "all")
+
+    if status == "new":
+        items = [i for i in items if i.status == consultations.SENT]
+    elif status == "work":
+        items = [i for i in items if i.status == consultations.ACCEPTED]
+    elif status == "answered":
+        items = [i for i in items if i.status == consultations.ANSWERED]
+    else:
+        status = "all"
+
+    return render_template(
+        "consultations.html",
+        mode="incoming",
+        status=status,
+        cards=consultation_cards(items, g.user.id),
+        status_labels=consultations.STATUS_LABELS,
+    )
+
+
+@app.route("/consultations/new", methods=["GET", "POST"])
+@login_required
+def consultation_new():
+
+    source = request.form if request.method == "POST" else request.args
+
+    consultant = db.session.get(Consultant, source.get("consultant", type=int) or 0)
+
+    if consultant is None or not consultant.verified:
+        abort(404)
+
+    user_cases = Case.query.filter_by(user_id=g.user.id).order_by(Case.id.desc()).all()
+
+    case_id = source.get("case", type=int)
+    error = None
+
+    owner = consultations.account_for_consultant(consultant.id)
+
+    if owner is None:
+        error = "Этот консультант пока не принимает запросы через приложение"
+    elif owner.id == g.user.id:
+        error = "Нельзя отправить запрос самому себе"
+
+    if request.method == "POST" and error is None:
+
+        case = db.session.get(Case, case_id or 0)
+
+        try:
+            item = consultations.create_request(g.user, consultant, case, request.form.get("question"))
+        except consultations.ConsultationError as e:
+            db.session.rollback()
+            error = e.message
+        else:
+            db.session.commit()
+            return redirect(url_for("consultation_view", id=item.id, sent=1))
+
+    return render_template(
+        "consultation_new.html",
+        consultant=consultant,
+        user_cases=user_cases,
+        case_id=case_id,
+        question=request.form.get("question", "") if request.method == "POST" else "",
+        response_hours=consultations.response_hours(consultant),
+        error=error,
+        can_send=owner is not None and owner.id != g.user.id,
+    ), (400 if request.method == "POST" and error else 200)
+
+
+@app.route("/consultations/<int:id>")
+@login_required
+def consultation_view(id):
+
+    item = consultation_or_404(id)
+
+    role = consultations.role_in(item, g.user.id)
+
+    consultations.mark_request_notifications_read(g.user.id, item.id)
+    db.session.commit()
+
+    case = consultations.case_for(item)
+    consultant = db.session.get(Consultant, item.consultant_id)
+    requester = db.session.get(User, item.requester_id)
+
+    return render_template(
+        "consultation_view.html",
+        item=item,
+        role=role,
+        case=case,
+        case_images=[p for p in (case.images or "").split(",") if p] if case else [],
+        consultant=consultant,
+        consultant_name=consultations.consultant_name(consultant) or _("Консультант удалён"),
+        requester_name=requester.username if requester else "—",
+        status_labels=consultations.STATUS_LABELS,
+        overdue=consultations.is_overdue(item),
+        error=session.pop("consultation_error", None),
+        just_sent=request.args.get("sent") == "1" and role == "requester",
+    )
+
+
+@app.route("/consultations/<int:id>/<action>", methods=["POST"])
+@login_required
+def consultation_action(id, action):
+
+    item = consultation_or_404(id)
+
+    role = consultations.role_in(item, g.user.id)
+
+    allowed = {
+        "accept": ("consultant", consultations.accept),
+        "decline": ("consultant", consultations.decline),
+        "cancel": ("requester", consultations.cancel),
+    }
+
+    try:
+        if action == "answer":
+            if role != "consultant":
+                abort(404)
+            consultations.answer(
+                item,
+                request.form.get("answer_conclusion"),
+                request.form.get("answer_comment"),
+            )
+        elif action in allowed and allowed[action][0] == role:
+            allowed[action][1](item)
+        else:
+            abort(404)
+    except consultations.ConsultationError as e:
+        db.session.rollback()
+        return consultation_error(e, item.id)
+
+    db.session.commit()
+
+    return redirect(url_for("consultation_view", id=item.id))
+
+
+# ---------- Уведомления ----------
+
+@app.route("/notifications")
+@login_required
+def notifications_page():
+
+    items = [
+        view for view in (
+            consultations.notification_view(n, _)
+            for n in consultations.recent_notifications(g.user.id, limit=100)
+        ) if view
+    ]
+
+    return render_template("notifications.html", items=items)
+
+
+@app.route("/notifications/feed")
+@login_required
+def notifications_feed():
+
+    """Последние уведомления для колокольчика (JSON)."""
+
+    items = []
+
+    for notification in consultations.recent_notifications(g.user.id, limit=10):
+        view = consultations.notification_view(notification, _)
+        if view:
+            items.append({
+                "id": view["id"],
+                "text": view["text"],
+                "unread": view["unread"],
+                "created_at": view["created_at"].isoformat() + "Z",
+                "url": url_for("notification_open", id=view["id"]),
+            })
+
+    return jsonify(unread=consultations.unread_count(g.user.id), items=items)
+
+
+@app.route("/notifications/<int:id>/open")
+@login_required
+def notification_open(id):
+
+    notification = db.session.get(Notification, id)
+
+    if notification is None or notification.user_id != g.user.id:
+        abort(404)
+
+    consultations.mark_read(notification)
+    db.session.commit()
+
+    return redirect(url_for("consultation_view", id=notification.request_id))
+
+
+@app.route("/notifications/read-all", methods=["POST"])
+@login_required
+def notifications_read_all():
+
+    consultations.mark_all_read(g.user.id)
+    db.session.commit()
+
+    if request.headers.get("X-CSRF-Token"):
+        return jsonify(ok=True)
+
+    return redirect(url_for("notifications_page"))
+
 
 # ---------- Патогистологические протоколы ----------
 

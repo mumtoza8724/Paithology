@@ -188,3 +188,77 @@ class CaseDetails(db.Model):
     case_id = db.Column(db.Integer, db.ForeignKey("case.id"), unique=True, index=True)
 
     data = db.Column(db.Text)
+
+
+# ---------- Консультации ----------
+# Новые таблицы; существующие (Case, Consultant, User) не меняются.
+
+
+class ConsultantAccount(db.Model):
+
+    """Связь анкеты консультанта с аккаунтом пользователя (одна анкета на аккаунт)."""
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    consultant_id = db.Column(db.Integer, db.ForeignKey("consultant.id"), unique=True, index=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), unique=True, index=True)
+
+    created_at = db.Column(db.DateTime)
+
+
+class ConsultationRequest(db.Model):
+
+    """
+    Запрос на консультацию: пользователь отправляет своё исследование
+    консультанту. Статусы: sent → accepted → answered; а также declined
+    (консультант отклонил) и cancelled (пользователь отменил до принятия).
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    requester_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+
+    consultant_id = db.Column(db.Integer, db.ForeignKey("consultant.id"), index=True)
+
+    # Аккаунт консультанта на момент отправки: ему приходит запрос
+    consultant_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+
+    case_id = db.Column(db.Integer, db.ForeignKey("case.id"), index=True)
+
+    question = db.Column(db.Text)
+
+    # Цена и срок ответа фиксируются в момент отправки
+    price = db.Column(db.String(50))
+    response_hours = db.Column(db.Integer)
+
+    status = db.Column(db.String(20), index=True)
+
+    # Оплата: none → paid при принятии. Пока без реального перевода денег
+    payment_status = db.Column(db.String(20))
+
+    created_at = db.Column(db.DateTime)
+    accepted_at = db.Column(db.DateTime)
+    due_at = db.Column(db.DateTime)
+    answered_at = db.Column(db.DateTime)
+    closed_at = db.Column(db.DateTime)
+
+    answer_conclusion = db.Column(db.Text)
+    answer_comment = db.Column(db.Text)
+
+
+class Notification(db.Model):
+
+    """Уведомление пользователю; текст собирается при показе на его языке."""
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+
+    kind = db.Column(db.String(30))
+
+    request_id = db.Column(db.Integer, db.ForeignKey("consultation_request.id"), index=True)
+
+    created_at = db.Column(db.DateTime)
+
+    read_at = db.Column(db.DateTime)

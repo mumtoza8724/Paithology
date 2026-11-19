@@ -2,6 +2,33 @@
    lang_next — куда вернуться после смены языка, если текущий адрес нельзя
    открыть повторно (страница результата показывается после отправки формы) #}
 {% set lang_return = lang_next or (request.full_path if request.query_string else request.path) %}
+<div class="topbar-tools">
+
+{% if nav_user %}
+{# Колокольчик уведомлений: список подгружается при открытии #}
+<div class="notify" data-feed-url="{{ url_for('notifications_feed') }}"
+     data-read-all-url="{{ url_for('notifications_read_all') }}" data-csrf="{{ csrf_token() }}">
+    <button type="button" class="notify-btn" aria-haspopup="true" aria-expanded="false"
+            title="{{ _("Уведомления") }}" aria-label="{{ _("Уведомления") }}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 16V11C18 7.7 15.8 5 12.8 4.3V3.5C12.8 3 12.4 2.6 12 2.6C11.6 2.6 11.2 3 11.2 3.5V4.3C8.2 5 6 7.7 6 11V16L4 18V19H20V18L18 16Z"
+                  stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M10 21C10.4 21.6 11.1 22 12 22C12.9 22 13.6 21.6 14 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="notify-badge" {% if not nav_unread %}hidden{% endif %}>{{ nav_unread if nav_unread < 100 else "99+" }}</span>
+    </button>
+    <div class="notify-panel" hidden>
+        <div class="notify-head">
+            <b>{{ _("Уведомления") }}</b>
+            <button type="button" class="notify-read-all">{{ _("Отметить все прочитанными") }}</button>
+        </div>
+        <ul class="notify-items"></ul>
+        <p class="notify-empty" hidden>{{ _("Уведомлений пока нет") }}</p>
+        <a class="notify-all" href="{{ url_for('notifications_page') }}">{{ _("Все уведомления") }}</a>
+    </div>
+</div>
+{% endif %}
+
 <nav class="lang-switch" aria-label="{{ _("Язык интерфейса") }}">
     {% for code, short, name in languages %}
     <a href="{{ url_for('set_language', code=code, next=lang_return) }}"
@@ -11,12 +38,21 @@
     {% endfor %}
 </nav>
 
+</div>
+
 <style>
-.lang-switch{
+.topbar-tools{
     position:absolute;
     top:20px;
     right:24px;
     z-index:1500;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'Inter', 'Segoe UI', sans-serif;
+}
+
+.lang-switch{
     display:flex;
     gap:2px;
     padding:4px;
@@ -56,17 +92,180 @@
     background:linear-gradient(90deg, #7c3aed, #a855f7);
 }
 
+/* ---------- Колокольчик ---------- */
+
+.notify{
+    position:relative;
+}
+
+.notify-btn{
+    position:relative;
+    width:46px;
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:0;
+    border-radius:14px;
+    cursor:pointer;
+    color:#e9d5ff;
+    background:rgba(20, 20, 45, .9);
+    border:1px solid rgba(139, 92, 246, .35);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 8px 24px rgba(0, 0, 0, .3);
+}
+
+.notify-btn:hover,
+.notify-btn[aria-expanded="true"]{
+    color:white;
+    background:rgba(124, 77, 255, .3);
+}
+
+.notify-badge{
+    position:absolute;
+    top:-6px;
+    right:-6px;
+    min-width:20px;
+    height:20px;
+    padding:0 5px;
+    box-sizing:border-box;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:700;
+    color:white;
+    background:#ef4444;
+    border:2px solid #0b1020;
+}
+
+.notify-badge[hidden]{
+    display:none;
+}
+
+.notify-panel{
+    position:absolute;
+    top:56px;
+    right:0;
+    width:360px;
+    max-height:70vh;
+    overflow:auto;
+    padding:14px;
+    box-sizing:border-box;
+    border-radius:18px;
+    background:#121433;
+    border:1px solid rgba(139, 92, 246, .45);
+    box-shadow:0 18px 40px rgba(0, 0, 0, .5);
+    color:white;
+    text-align:left;
+}
+
+.notify-panel[hidden]{
+    display:none;
+}
+
+.notify-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+}
+
+.notify-read-all{
+    margin:0;
+    padding:4px 0;
+    border:none;
+    background:none;
+    color:#c4b5fd;
+    font-size:13px;
+    cursor:pointer;
+}
+
+.notify-items{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.notify-items a{
+    display:block;
+    padding:10px 12px;
+    border-radius:12px;
+    color:#d9d9f5;
+    text-decoration:none;
+    font-size:14px;
+    line-height:1.4;
+    background:rgba(255, 255, 255, .03);
+}
+
+.notify-items a.unread{
+    color:white;
+    font-weight:600;
+    background:rgba(124, 77, 255, .16);
+}
+
+.notify-items a:hover{
+    background:rgba(124, 77, 255, .25);
+}
+
+.notify-items small{
+    display:block;
+    margin-top:3px;
+    color:#a5a6c9;
+    font-weight:400;
+    font-size:12px;
+}
+
+.notify-empty{
+    margin:6px 0;
+    color:#a5a6c9;
+    font-size:14px;
+}
+
+.notify-all{
+    display:block;
+    margin-top:10px;
+    text-align:center;
+    color:#c4b5fd;
+    font-size:14px;
+    text-decoration:none;
+}
+
 @media (max-width:768px){
 
     /* открытое меню закрывает весь экран — переключатель прячем */
-    body.sidebar-open .lang-switch{
+    body.sidebar-open .topbar-tools{
         display:none;
     }
 
-    .lang-switch{
+    .topbar-tools{
         top:12px;
         right:12px;
+        gap:8px;
+    }
+
+    .lang-switch{
         padding:3px;
+    }
+
+    .notify-btn{
+        width:46px;
+        height:46px;
+    }
+
+    .notify-panel{
+        position:fixed;
+        top:68px;
+        left:12px;
+        right:12px;
+        width:auto;
     }
 
     .lang-switch a{
@@ -90,3 +289,89 @@ window.t = function (text, values) {
     return out;
 };
 </script>
+
+{% if nav_user %}
+<script>
+// Колокольчик: список уведомлений при открытии, счётчик обновляется раз в минуту
+(function () {
+    var box = document.querySelector(".notify");
+    if (!box) return;
+    var button = box.querySelector(".notify-btn");
+    var panel = box.querySelector(".notify-panel");
+    var list = box.querySelector(".notify-items");
+    var empty = box.querySelector(".notify-empty");
+    var badge = box.querySelector(".notify-badge");
+
+    function setCount(count) {
+        badge.hidden = !count;
+        badge.textContent = count > 99 ? "99+" : String(count);
+    }
+
+    function render(items) {
+        list.innerHTML = "";
+        empty.hidden = items.length > 0;
+        items.forEach(function (item) {
+            var li = document.createElement("li");
+            var link = document.createElement("a");
+            link.href = item.url;
+            if (item.unread) link.className = "unread";
+            link.textContent = item.text;
+            var time = document.createElement("small");
+            var date = new Date(item.created_at);
+            time.textContent = isNaN(date) ? "" : date.toLocaleString(document.documentElement.lang === "en" ? "en-GB" : "ru-RU",
+                { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+            link.appendChild(time);
+            li.appendChild(link);
+            list.appendChild(li);
+        });
+    }
+
+    function load() {
+        return fetch(box.dataset.feedUrl, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+            .then(function (response) { return response.ok ? response.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                setCount(data.unread);
+                render(data.items);
+            })
+            .catch(function () {});
+    }
+
+    function close() {
+        panel.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+    }
+
+    button.addEventListener("click", function (event) {
+        event.stopPropagation();
+        if (panel.hidden) {
+            panel.hidden = false;
+            button.setAttribute("aria-expanded", "true");
+            load();
+        } else {
+            close();
+        }
+    });
+
+    box.querySelector(".notify-read-all").addEventListener("click", function () {
+        fetch(box.dataset.readAllUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-CSRF-Token": box.dataset.csrf },
+        }).then(load);
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!panel.hidden && !box.contains(event.target)) close();
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") close();
+    });
+
+    setInterval(function () {
+        if (document.visibilityState === "visible" && panel.hidden) load();
+    }, 60000);
+})();
+</script>
+{% endif %}

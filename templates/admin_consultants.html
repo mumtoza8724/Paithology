@@ -117,6 +117,39 @@ h1{
     margin-bottom:15px;
 }
 
+.link-form{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:6px 0 10px;
+}
+.link-form input{
+    flex:1 1 200px;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #9c6cff;
+    background:rgba(255,255,255,.05);
+    color:white;
+    font-size:15px;
+}
+.link-form button{
+    padding:10px 16px;
+    border:none;
+    border-radius:10px;
+    background:#8b5cf6;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+}
+.admin-error{
+    max-width:900px;
+    margin:0 auto 20px;
+    padding:12px 16px;
+    border-radius:12px;
+    color:#fecaca;
+    background:rgba(239,68,68,.12);
+    border:1px solid rgba(239,68,68,.45);
+}
 </style>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
@@ -125,6 +158,10 @@ h1{
 
 {% include "lang_switch.html" %}
 <h1>{{ _("Проверка консультантов") }}</h1>
+
+{% if admin_error %}
+<div class="admin-error">{{ _(admin_error) }}</div>
+{% endif %}
 
 {% for consultant in consultants %}
 
@@ -142,6 +179,20 @@ class="photo">
 </h2><p>
 <b>Email:</b>
 {{ consultant.email }}
+</p><p>
+<b>{{ _("Аккаунт:") }}</b>
+{% if accounts.get(consultant.id) %}
+{{ accounts.get(consultant.id) }}
+{% else %}
+{{ _("не привязан — запросы не приходят") }}
+</p>
+<form method="POST" action="{{ url_for('link_consultant_account', id=consultant.id) }}" class="link-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="text" name="username" required placeholder="{{ _("Логин пользователя") }}">
+<button type="submit">{{ _("Привязать аккаунт") }}</button>
+</form>
+<p>
+{% endif %}
 </p><p>
 <b>{{ _("Страна:") }}</b>
 {{ _(consultant.country or '') }}
